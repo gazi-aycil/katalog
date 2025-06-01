@@ -5,13 +5,10 @@ import AdminLayout from './components/Layout/AdminLayout';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminCategories from './pages/Admin/Categories';
 import Items from './pages/Admin/Items';
-import AdminProducts from './pages/Admin/Items';
-import HomePage from './pages/Home';
-import CatalogPage from './pages/Catalog/Category';
-import ProductPage from './pages/Catalog/Product';
+
+
 import NotFound from './pages/NotFound';
-import MainLayout from './components/Layout/MainLayout';
-import MainNav from './components/Navigation/MainNav';
+
 
 // Create a theme instance
 const theme = createTheme({
