@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
-// Create axios instance with base URL
 const API = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5002/api',
   maxContentLength: 50 * 1024 * 1024, // 50MB
   maxBodyLength: 50 * 1024 * 1024, // 50MB
+  headers: {
+    'Content-Type': 'application/json',
+    // Add any auth headers if needed
+    // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
 });
 
 // Add response interceptor to handle errors
