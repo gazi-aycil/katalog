@@ -110,7 +110,7 @@ export default function Items() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Products</Typography>
+        <Typography variant="h4">Ürünler</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -141,7 +141,7 @@ export default function Items() {
                 <TableRow key={item._id}>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.category}</TableCell>
-                  <TableCell>${item.price?.toFixed(2)}</TableCell>
+                  <TableCell>₺{item.price?.toFixed(2)}</TableCell>
                   <TableCell>
                     <IconButton onClick={() => handleEdit(item)}>
                       <Edit />

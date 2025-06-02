@@ -166,13 +166,13 @@ export default function Categories() {
         open={deleteConfirm}
         onClose={() => setDeleteConfirm(false)}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle> Kategoriyi Sil</DialogTitle>
         <DialogContent>
-          Delete category "{categoryToDelete?.name}"?
+          Silmek İstediğinizden Emin misinz?"{categoryToDelete?.name}"?
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error">Delete</Button>
+          <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
+          <Button onClick={handleDelete} color="error">Sil</Button>
         </DialogActions>
       </Dialog>
 

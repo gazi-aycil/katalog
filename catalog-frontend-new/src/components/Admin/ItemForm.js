@@ -175,7 +175,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   required
                   InputProps={{
                     endAdornment: (
-                      <Typography sx={{ ml: 1 }}>TRY</Typography>
+                      <Typography sx={{ ml: 1 }}>₺</Typography>
                     ),
                     inputProps: { min: 0, step: 0.01 },
                     sx: {
