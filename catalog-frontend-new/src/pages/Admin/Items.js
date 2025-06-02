@@ -28,6 +28,7 @@ export default function Items() {
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [productToDelete, setCategoryToDelete] = useState(null);
   const [currentItem, setCurrentItem] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
