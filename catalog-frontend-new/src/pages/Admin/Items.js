@@ -28,7 +28,7 @@ export default function Items() {
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [productToDelete, setCategoryToDelete] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [currentItem, setCurrentItem] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -86,9 +86,14 @@ export default function Items() {
     setOpenForm(true);
   };
 
-  const handleDelete = async (itemId) => {
+  const handleDeleteConfirm = (item) => {
+    setItemToDelete(item);
+    setDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
     try {
-      await deleteItem(itemId);
+      await deleteItem(itemToDelete._id);
       setSnackbar({
         open: true,
         message: 'Product deleted successfully',
@@ -96,12 +101,13 @@ export default function Items() {
       });
       fetchItems();
     } catch (err) {
-      console.error('Delete error:', err); // Add this line
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Failed to delete product',
         severity: 'error'
       });
+    } finally {
+      setDeleteConfirm(false);
     }
   };
 
@@ -126,7 +132,9 @@ export default function Items() {
       </Box>
 
       {loading ? (
-        <CircularProgress />
+        <Box display="flex" justifyContent="center" mt={4}>
+          <CircularProgress />
+        </Box>
       ) : (
         <TableContainer component={Paper}>
           <Table>
@@ -148,7 +156,7 @@ export default function Items() {
                     <IconButton onClick={() => handleEdit(item)}>
                       <Edit />
                     </IconButton>
-                    <IconButton onClick={() => handleDelete(item._id)}>
+                    <IconButton onClick={() => handleDeleteConfirm(item)}>
                       <Delete />
                     </IconButton>
                   </TableCell>
@@ -159,8 +167,27 @@ export default function Items() {
         </TableContainer>
       )}
 
-      <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{currentItem ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+      <Dialog
+        open={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+      >
+        <DialogTitle>Ürünü Sil</DialogTitle>
+        <DialogContent>
+          "{itemToDelete?.name}" ürününü silmek istediğinizden emin misiniz?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
+          <Button onClick={handleDelete} color="error">Sil</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={openForm} 
+        onClose={() => setOpenForm(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>{currentItem ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle'}</DialogTitle>
         <DialogContent>
           <ItemForm 
             onSave={handleSave} 
@@ -172,26 +199,16 @@ export default function Items() {
           />
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={deleteConfirm}
-        onClose={() => setDeleteConfirm(false)}
-      >
-        <DialogTitle> Ürünü Sil</DialogTitle>
-        <DialogContent>
-          Silmek İstediğinizden Emin misinz?"{productToDelete?.name}"?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
-          <Button onClick={handleDelete} color="error">Sil</Button>
-        </DialogActions>
-      </Dialog>
 
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
       >
-        <Alert severity={snackbar.severity}>
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
