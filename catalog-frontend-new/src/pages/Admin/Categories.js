@@ -116,7 +116,7 @@ export default function Categories() {
             setOpenForm(true);
           }}
         >
-          Add Category
+          Kategori Ekle
         </Button>
       </Box>
 
@@ -129,9 +129,9 @@ export default function Categories() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Subcategories</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>Kategori</TableCell>
+                <TableCell>Altkategoriler</TableCell>
+                <TableCell>İşlemler</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

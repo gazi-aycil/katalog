@@ -54,13 +54,13 @@ const Dashboard = () => {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Admin Dashboard
+        Ravinzo Katalog Admin Panel
       </Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6">Categories</Typography>
+              <Typography variant="h6">Kategoriler</Typography>
               <Typography variant="h3">{stats.categories}</Typography>
             </CardContent>
           </Card>
@@ -68,7 +68,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6">Products</Typography>
+              <Typography variant="h6">Ürünler</Typography>
               <Typography variant="h3">{stats.items}</Typography>
             </CardContent>
           </Card>

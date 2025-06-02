@@ -119,7 +119,7 @@ export default function Items() {
             setOpenForm(true);
           }}
         >
-          Add Product
+          Ürün Ekle
         </Button>
       </Box>
 
@@ -130,10 +130,10 @@ export default function Items() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>İsim</TableCell>
+                <TableCell>Kategori</TableCell>
+                <TableCell>Fiyat</TableCell>
+                <TableCell>İşlem</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
