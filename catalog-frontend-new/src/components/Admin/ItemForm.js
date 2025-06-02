@@ -21,7 +21,7 @@ import { Add, Delete, CloudUpload, Close } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
 
 export default function ItemForm({ item, onSave, onCancel }) {
-  // Basic fields
+  // Temel alanlar
   const [barcode, setBarcode] = useState(item?.barcode || '');
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');
@@ -31,28 +31,28 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [specs, setSpecs] = useState(item?.specs || []);
   const [newSpec, setNewSpec] = useState('');
 
-  // Image handling
+  // Resim yönetimi
   const [images, setImages] = useState(item?.images || []);
   const [uploading, setUploading] = useState(false);
 
-  // Category data
+  // Kategori verileri
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
 
-  // Load categories on mount
+  // Bileşen yüklendiğinde kategorileri getir
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await getCategories();
         setCategories(response.data);
       } catch (err) {
-        console.error('Failed to fetch categories', err);
+        console.error('Kategoriler alınırken hata oluştu', err);
       }
     };
     fetchCategories();
   }, []);
 
-  // Update subcategories when category changes
+  // Kategori değiştiğinde alt kategorileri güncelle
   useEffect(() => {
     if (category) {
       const selected = categories.find(c => c.name === category);
@@ -63,7 +63,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setSubcategory('');
   }, [category, categories]);
 
-  // Image upload handler
+  // Resim yükleme işleyicisi
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files).slice(0, 10 - images.length);
     if (files.length === 0) return;
@@ -77,18 +77,18 @@ export default function ItemForm({ item, onSave, onCancel }) {
       const response = await uploadProductImages(formData);
       setImages(prev => [...prev, ...response.data.imageUrls]);
     } catch (err) {
-      console.error('Upload failed:', err);
+      console.error('Yükleme başarısız:', err);
     } finally {
       setUploading(false);
     }
   };
 
-  // Remove image
+  // Resmi kaldır
   const handleRemoveImage = (index) => {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  // Specifications handling
+  // Özellik yönetimi
   const handleAddSpec = () => {
     if (newSpec.trim()) {
       setSpecs([...specs, newSpec.trim()]);
@@ -100,7 +100,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setSpecs(specs.filter((_, i) => i !== index));
   };
 
-  // Form submission
+  // Form gönderimi
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({
@@ -118,15 +118,14 @@ export default function ItemForm({ item, onSave, onCancel }) {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
       <Grid container spacing={3}>
-        {/* Basic Information Section */}
+        {/* Temel Bilgiler Bölümü */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Basic Information
+              Temel Bilgiler
             </Typography>
             
             <Grid container spacing={2} alignItems="flex-end">
-              {/* Product Name - Large single line */}
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
@@ -149,7 +148,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
-                  label="Product Name"
+                  label="Ürün Adı"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -166,13 +165,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 />
               </Grid>
 
-              
-              
-              {/* Price with TRY sign - Right aligned */}
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
-                  label="Price"
+                  label="Fiyat"
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
@@ -199,7 +195,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 />
               </Grid>
 
-              {/* Large Category Dropdown */}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth sx={{ mt: 2 }}>
                   <InputLabel 
@@ -209,7 +204,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                     shrink={Boolean(category)}
                   >
-                    Category
+                    Kategori
                   </InputLabel>
                   <Select
                     value={category}
@@ -238,7 +233,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                   >
                     <MenuItem disabled value="">
-                      <em>Select a category</em>
+                      <em>Bir kategori seçin</em>
                     </MenuItem>
                     {categories.map((cat) => (
                       <MenuItem 
@@ -258,7 +253,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 </FormControl>
               </Grid>
               
-              {/* Large Subcategory Dropdown */}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth sx={{ mt: 2 }}>
                   <InputLabel 
@@ -268,7 +262,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                     shrink={Boolean(subcategory)}
                   >
-                    Subcategory
+                    Alt Kategori
                   </InputLabel>
                   <Select
                     value={subcategory}
@@ -297,7 +291,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                   >
                     <MenuItem disabled value="">
-                      <em>{category ? 'Select a subcategory' : 'Select category first'}</em>
+                      <em>{category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}</em>
                     </MenuItem>
                     {subcategories.map((subcat, i) => (
                       <MenuItem 
@@ -317,11 +311,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 </FormControl>
               </Grid>
               
-              {/* Large single-line Description */}
               <Grid item xs={12} sx={{ mt: 2 }}>
                 <TextField
                   fullWidth
-                  label="Description"
+                  label="Açıklama"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   sx={{
@@ -340,11 +333,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Paper>
         </Grid>
 
-        {/* Product Images Section */}
+        {/* Ürün Resimleri Bölümü */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Product Images ({images.length}/10)
+              Ürün Resimleri ({images.length}/10)
             </Typography>
 
             {images.length > 0 && (
@@ -390,7 +383,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                             borderRadius: 1
                           }}
                         >
-                          Image {index + 1}
+                          Resim {index + 1}
                         </Typography>
                       </Box>
                     </Grid>
@@ -409,10 +402,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
               {uploading ? (
                 <>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Uploading...
+                  Yükleniyor...
                 </>
               ) : (
-                'Add Images'
+                'Resim Ekle'
               )}
               <Input
                 type="file"
@@ -425,17 +418,17 @@ export default function ItemForm({ item, onSave, onCancel }) {
             </Button>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
               {images.length < 10 
-                ? `You can add ${10 - images.length} more images` 
-                : 'Maximum 10 images reached'}
+                ? `${10 - images.length} resim daha ekleyebilirsiniz` 
+                : 'Maksimum 10 resim sınırına ulaşıldı'}
             </Typography>
           </Paper>
         </Grid>
 
-        {/* Specifications Section */}
+        {/* Özellikler Bölümü */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Specifications
+              Özellikler
             </Typography>
             
             <Box sx={{ mb: 2 }}>
@@ -453,7 +446,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
-                  label="Add Specification"
+                  label="Özellik Ekle"
                   value={newSpec}
                   onChange={(e) => setNewSpec(e.target.value)}
                   size="small"
@@ -467,18 +460,18 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   disabled={!newSpec.trim()}
                   fullWidth
                 >
-                  Add Spec
+                  Ekle
                 </Button>
               </Grid>
             </Grid>
           </Paper>
         </Grid>
 
-        {/* Form Actions */}
+        {/* Form İşlemleri */}
         <Grid item xs={12}>
           <Stack direction="row" spacing={2} justifyContent="flex-end">
             <Button onClick={onCancel} variant="outlined" size="large">
-              Cancel
+              İptal
             </Button>
             <Button 
               type="submit" 
@@ -486,7 +479,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               color="primary"
               size="large"
             >
-              Save Product
+              Ürünü Kaydet
             </Button>
           </Stack>
         </Grid>

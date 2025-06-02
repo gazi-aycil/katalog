@@ -19,17 +19,17 @@ export default function AdminLayout() {
           <List>
             <ListItem disablePadding>
               <ListItemButton component={Link} to="/admin">
-                <ListItemText primary="Dashboard" />
+                <ListItemText primary="Anasayfa" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton component={Link} to="/admin/categories">
-                <ListItemText primary="Categories" />
+                <ListItemText primary="Kategoriler" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton component={Link} to="/admin/products">
-                <ListItemText primary="Products" />
+                <ListItemText primary="Ürünler" />
               </ListItemButton>
             </ListItem>
           </List>

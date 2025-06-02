@@ -62,18 +62,18 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
       <Grid container spacing={3}>
-        {/* Main Category Section */}
+        {/* Ana Kategori Bölümü */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Category Information
+              Kategori Bilgileri
             </Typography>
             
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Category Name"
+                  label="Kategori Adı"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -90,7 +90,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                     fullWidth
                     size="small"
                   >
-                    Upload Category Image
+                    Kategori Resmi Yükle
                     <Input
                       type="file"
                       hidden
@@ -105,7 +105,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                         sx={{ width: 40, height: 40, mr: 1 }}
                         variant="rounded"
                       />
-                      <Typography variant="caption">Image selected</Typography>
+                      <Typography variant="caption">Resim seçildi</Typography>
                     </Box>
                   )}
                 </FormControl>
@@ -114,18 +114,18 @@ export default function CategoryForm({ category, onSave, onCancel }) {
           </Paper>
         </Grid>
 
-        {/* Subcategories Section */}
+        {/* Alt Kategoriler Bölümü */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Subcategories
+              Alt Kategoriler
             </Typography>
             
-            {/* Existing Subcategories */}
+            {/* Mevcut Alt Kategoriler */}
             {subcategories.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>
-                  Current Subcategories
+                  Mevcut Alt Kategoriler
                 </Typography>
                 <Grid container spacing={2}>
                   {subcategories.map((subcat, index) => (
@@ -153,15 +153,15 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               </Box>
             )}
 
-            {/* Add New Subcategory */}
+            {/* Yeni Alt Kategori Ekle */}
             <Typography variant="subtitle2" gutterBottom>
-              Add New Subcategory
+              Yeni Alt Kategori Ekle
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={5}>
                 <TextField
                   fullWidth
-                  label="Subcategory Name"
+                  label="Alt Kategori Adı"
                   value={newSubcategory}
                   onChange={(e) => setNewSubcategory(e.target.value)}
                   size="small"
@@ -175,7 +175,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   fullWidth
                   size="small"
                 >
-                  Upload Image
+                  Resim Yükle
                   <Input
                     type="file"
                     hidden
@@ -193,7 +193,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   fullWidth
                   size="small"
                 >
-                  Add
+                  Ekle
                 </Button>
               </Grid>
             </Grid>
@@ -204,17 +204,17 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   sx={{ width: 30, height: 30, mr: 1 }}
                   variant="rounded"
                 />
-                <Typography variant="caption">Image ready</Typography>
+                <Typography variant="caption">Resim hazır</Typography>
               </Box>
             )}
           </Paper>
         </Grid>
 
-        {/* Form Actions */}
+        {/* Form İşlemleri */}
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
             <Button onClick={onCancel} variant="outlined" size="large">
-              Cancel
+              İptal
             </Button>
             <Button 
               type="submit" 
@@ -222,7 +222,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               color="primary"
               size="large"
             >
-              Save Category
+              Kategoriyi Kaydet
             </Button>
           </Box>
         </Grid>
