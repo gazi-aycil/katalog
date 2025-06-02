@@ -107,7 +107,7 @@ export default function Categories() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Categories</Typography>
+        <Typography variant="h4">Kategoriler</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}

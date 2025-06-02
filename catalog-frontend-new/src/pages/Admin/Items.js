@@ -27,6 +27,7 @@ export default function Items() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -169,6 +170,19 @@ export default function Items() {
             item={currentItem}
           />
         </DialogContent>
+      </Dialog>
+      <Dialog
+        open={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+      >
+        <DialogTitle> Ürünü Sil</DialogTitle>
+        <DialogContent>
+          Silmek İstediğinizden Emin misinz?"{productToDelete?.name}"?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
+          <Button onClick={handleDelete} color="error">Sil</Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar
