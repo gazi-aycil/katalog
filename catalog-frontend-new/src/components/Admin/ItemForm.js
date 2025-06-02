@@ -204,7 +204,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                     shrink={Boolean(category)}
                   >
-                    Kategori
+                    
                   </InputLabel>
                   <Select
                     value={category}
@@ -262,7 +262,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }}
                     shrink={Boolean(subcategory)}
                   >
-                    Alt Kategori
+                    
                   </InputLabel>
                   <Select
                     value={subcategory}
