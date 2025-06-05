@@ -41,8 +41,16 @@ export const deleteItem = (id) => API.delete(`/items/${id}`);
 export const getItemsByCategory = (categoryName, subcategoryName) => 
   API.get(`/items/${categoryName}/${subcategoryName || ''}`);
 
-export const uploadProductImages = (formData) => {
-  return axios.post('/api/upload-images', formData, {
+export const uploadImages = (formData) => {
+  return API.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+export const uploadImage = (formData) => {
+  return API.post('/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
