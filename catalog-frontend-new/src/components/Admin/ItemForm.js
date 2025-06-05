@@ -13,15 +13,19 @@ import {
   Typography,
   Avatar,
   Paper,
-  Stack,
   CircularProgress,
-  Input
+  Input,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
 
 export default function ItemForm({ item, onSave, onCancel }) {
-  // Temel alanlar
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // State'ler
   const [barcode, setBarcode] = useState(item?.barcode || '');
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');
@@ -30,16 +34,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [subcategory, setSubcategory] = useState(item?.subcategory || '');
   const [specs, setSpecs] = useState(item?.specs || []);
   const [newSpec, setNewSpec] = useState('');
-
-  // Resim yönetimi
   const [images, setImages] = useState(item?.images || []);
   const [uploading, setUploading] = useState(false);
-
-  // Kategori verileri
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
 
-  // Bileşen yüklendiğinde kategorileri getir
+  // Kategorileri yükle
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -52,7 +52,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
     fetchCategories();
   }, []);
 
-  // Kategori değiştiğinde alt kategorileri güncelle
+  // Alt kategorileri güncelle
   useEffect(() => {
     if (category) {
       const selected = categories.find(c => c.name === category);
@@ -63,7 +63,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setSubcategory('');
   }, [category, categories]);
 
-  // Resim yükleme işleyicisi
+  // Resim yükleme
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files).slice(0, 10 - images.length);
     if (files.length === 0) return;
@@ -83,12 +83,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
     }
   };
 
-  // Resmi kaldır
+  // Diğer fonksiyonlar...
   const handleRemoveImage = (index) => {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  // Özellik yönetimi
   const handleAddSpec = () => {
     if (newSpec.trim()) {
       setSpecs([...specs, newSpec.trim()]);
@@ -100,7 +99,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setSpecs(specs.filter((_, i) => i !== index));
   };
 
-  // Form gönderimi
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({
@@ -116,16 +114,20 @@ export default function ItemForm({ item, onSave, onCancel }) {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-      <Grid container spacing={3}>
-        {/* Temel Bilgiler Bölümü */}
+    <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 1 : 3 }}>
+      <Grid container spacing={isMobile ? 1 : 3}>
+        {/* Temel Bilgiler */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+          <Paper elevation={0} sx={{ 
+            p: isMobile ? 2 : 3, 
+            border: '1px solid #eee',
+            borderRadius: isMobile ? 1 : 2
+          }}>
+            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
               Temel Bilgiler
             </Typography>
             
-            <Grid container spacing={2} alignItems="flex-end">
+            <Grid container spacing={isMobile ? 1 : 2}>
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
@@ -133,18 +135,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
                   required
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: '60px',
-                      fontSize: '1.1rem'
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '1rem',
-                      transform: name ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }
-                  }}
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
+              
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
@@ -152,16 +146,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: '60px',
-                      fontSize: '1.1rem'
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '1rem',
-                      transform: name ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }
-                  }}
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
 
@@ -174,78 +159,24 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   onChange={(e) => setPrice(e.target.value)}
                   required
                   InputProps={{
-                    endAdornment: (
-                      <Typography sx={{ ml: 1 }}>₺</Typography>
-                    ),
+                    endAdornment: <Typography sx={{ ml: 1 }}>₺</Typography>,
                     inputProps: { min: 0, step: 0.01 },
-                    sx: {
-                      height: '60px',
-                      fontSize: '1.1rem',
-                      '& input': {
-                        textAlign: 'right'
-                      }
-                    }
                   }}
-                  InputLabelProps={{
-                    sx: { 
-                      fontSize: '1rem',
-                      transform: price ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }
-                  }}
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel 
-                    sx={{ 
-                      fontSize: '1rem',
-                      transform: category ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }}
-                    shrink={Boolean(category)}
-                  >
-                    
-                  </InputLabel>
+                <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+                  <InputLabel>Kategori</InputLabel>
                   <Select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     required
-                    displayEmpty
-                    sx={{
-                      '& .MuiSelect-select': {
-                        padding: '16px 14px',
-                        fontSize: '1.1rem',
-                        height: '60px',
-                        boxSizing: 'border-box',
-                        display: 'flex',
-                        alignItems: 'center'
-                      },
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        top: 0
-                      }
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          maxHeight: 300
-                        }
-                      }
-                    }}
                   >
-                    <MenuItem disabled value="">
-                      <em>Bir kategori seçin</em>
-                    </MenuItem>
+                    <MenuItem value="">Bir kategori seçin</MenuItem>
                     {categories.map((cat) => (
-                      <MenuItem 
-                        key={cat._id} 
-                        value={cat.name} 
-                        sx={{ 
-                          fontSize: '1rem',
-                          height: '48px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
+                      <MenuItem key={cat._id} value={cat.name}>
                         {cat.name}
                       </MenuItem>
                     ))}
@@ -254,56 +185,18 @@ export default function ItemForm({ item, onSave, onCancel }) {
               </Grid>
               
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel 
-                    sx={{ 
-                      fontSize: '1rem',
-                      transform: subcategory ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }}
-                    shrink={Boolean(subcategory)}
-                  >
-                    
-                  </InputLabel>
+                <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+                  <InputLabel>Alt Kategori</InputLabel>
                   <Select
                     value={subcategory}
                     onChange={(e) => setSubcategory(e.target.value)}
                     disabled={!category}
-                    displayEmpty
-                    sx={{
-                      '& .MuiSelect-select': {
-                        padding: '16px 14px',
-                        fontSize: '1.1rem',
-                        height: '60px',
-                        boxSizing: 'border-box',
-                        display: 'flex',
-                        alignItems: 'center'
-                      },
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        top: 0
-                      }
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          maxHeight: 300
-                        }
-                      }
-                    }}
                   >
-                    <MenuItem disabled value="">
-                      <em>{category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}</em>
+                    <MenuItem value="">
+                      {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
                     </MenuItem>
                     {subcategories.map((subcat, i) => (
-                      <MenuItem 
-                        key={i} 
-                        value={subcat.name}
-                        sx={{ 
-                          fontSize: '1rem',
-                          height: '48px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
+                      <MenuItem key={i} value={subcat.name}>
                         {subcat.name}
                       </MenuItem>
                     ))}
@@ -311,38 +204,35 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} sx={{ mt: 2 }}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Açıklama"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: '60px',
-                      fontSize: '1.1rem'
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '1rem',
-                      transform: description ? 'translate(14px, -9px) scale(0.75)' : 'translate(14px, 20px)'
-                    }
-                  }}
+                  multiline
+                  rows={isMobile ? 3 : 4}
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
             </Grid>
           </Paper>
         </Grid>
 
-        {/* Ürün Resimleri Bölümü */}
+        {/* Ürün Resimleri */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+          <Paper elevation={0} sx={{ 
+            p: isMobile ? 2 : 3, 
+            border: '1px solid #eee',
+            borderRadius: isMobile ? 1 : 2
+          }}>
+            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
               Ürün Resimleri ({images.length}/10)
             </Typography>
 
             {images.length > 0 && (
               <Box sx={{ mb: 3 }}>
-                <Grid container spacing={2}>
+                <Grid container spacing={isMobile ? 1 : 2}>
                   {images.map((img, index) => (
                     <Grid item xs={6} sm={4} md={3} key={index}>
                       <Box sx={{ position: 'relative' }}>
@@ -350,7 +240,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                           src={img}
                           sx={{ 
                             width: '100%', 
-                            height: 120,
+                            height: isMobile ? 100 : 120,
                             borderRadius: 1
                           }}
                           variant="rounded"
@@ -398,6 +288,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               startIcon={<CloudUpload />}
               disabled={images.length >= 10 || uploading}
               fullWidth
+              size={isMobile ? "medium" : "large"}
             >
               {uploading ? (
                 <>
@@ -424,10 +315,14 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Paper>
         </Grid>
 
-        {/* Özellikler Bölümü */}
+        {/* Özellikler */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+          <Paper elevation={0} sx={{ 
+            p: isMobile ? 2 : 3, 
+            border: '1px solid #eee',
+            borderRadius: isMobile ? 1 : 2
+          }}>
+            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
               Özellikler
             </Typography>
             
@@ -437,19 +332,20 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   key={index}
                   label={spec}
                   onDelete={() => handleRemoveSpec(index)}
+                  size={isMobile ? "small" : "medium"}
                   sx={{ mr: 1, mb: 1 }}
                 />
               ))}
             </Box>
             
-            <Grid container spacing={2}>
+            <Grid container spacing={isMobile ? 1 : 2} alignItems="center">
               <Grid item xs={12} sm={8}>
                 <TextField
                   fullWidth
                   label="Özellik Ekle"
                   value={newSpec}
                   onChange={(e) => setNewSpec(e.target.value)}
-                  size="small"
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -459,6 +355,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   startIcon={<Add />}
                   disabled={!newSpec.trim()}
                   fullWidth
+                  size={isMobile ? "medium" : "large"}
                 >
                   Ekle
                 </Button>
@@ -469,19 +366,30 @@ export default function ItemForm({ item, onSave, onCancel }) {
 
         {/* Form İşlemleri */}
         <Grid item xs={12}>
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button onClick={onCancel} variant="outlined" size="large">
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: isMobile ? 1 : 2,
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
+            <Button 
+              onClick={onCancel} 
+              variant="outlined" 
+              size={isMobile ? "medium" : "large"}
+              fullWidth={isMobile}
+            >
               İptal
             </Button>
             <Button 
               type="submit" 
               variant="contained" 
               color="primary"
-              size="large"
+              size={isMobile ? "medium" : "large"}
+              fullWidth={isMobile}
             >
               Ürünü Kaydet
             </Button>
-          </Stack>
+          </Box>
         </Grid>
       </Grid>
     </Box>

@@ -3,22 +3,24 @@ import {
   TextField,
   Button,
   Box,
-  Chip,
   IconButton,
   Avatar,
   Input,
   FormControl,
   Typography,
-  Divider,
-  Stack,
   Paper,
   Grid,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add, Delete, CloudUpload } from '@mui/icons-material';
 import { uploadProductImages } from '../../services/api';
 
 export default function CategoryForm({ category, onSave, onCancel }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [name, setName] = useState(category?.name || '');
   const [subcategories, setSubcategories] = useState(
     category?.subcategories?.map(sc => ({ 
@@ -73,16 +75,20 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-      <Grid container spacing={3}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 1 : 3 }}>
+      <Grid container spacing={isMobile ? 1 : 3}>
         {/* Ana Kategori Bölümü */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+          <Paper elevation={0} sx={{ 
+            p: isMobile ? 2 : 3, 
+            border: '1px solid #eee',
+            borderRadius: isMobile ? 1 : 2
+          }}>
+            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
               Kategori Bilgileri
             </Typography>
             
-            <Grid container spacing={2}>
+            <Grid container spacing={isMobile ? 1 : 2}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -90,7 +96,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  size="small"
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
               
@@ -101,16 +107,17 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                     variant="outlined"
                     startIcon={<CloudUpload />}
                     fullWidth
-                    size="small"
+                    size={isMobile ? "small" : "medium"}
                     disabled={uploading}
+                    sx={{ py: isMobile ? 1 : undefined }}
                   >
                     {uploading ? (
-                      <>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <CircularProgress size={20} sx={{ mr: 1 }} />
-                        Yükleniyor...
-                      </>
+                        {!isMobile && 'Yükleniyor...'}
+                      </Box>
                     ) : (
-                      'Kategori Resmi Yükle'
+                      isMobile ? 'Resim Yükle' : 'Kategori Resmi Yükle'
                     )}
                     <Input
                       type="file"
@@ -123,7 +130,11 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                     <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                       <Avatar 
                         src={categoryImage} 
-                        sx={{ width: 40, height: 40, mr: 1 }}
+                        sx={{ 
+                          width: isMobile ? 32 : 40, 
+                          height: isMobile ? 32 : 40, 
+                          mr: 1 
+                        }}
                         variant="rounded"
                       />
                       <Typography variant="caption">Resim seçildi</Typography>
@@ -137,35 +148,49 @@ export default function CategoryForm({ category, onSave, onCancel }) {
 
         {/* Alt Kategoriler Bölümü */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid #eee' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+          <Paper elevation={0} sx={{ 
+            p: isMobile ? 2 : 3, 
+            border: '1px solid #eee',
+            borderRadius: isMobile ? 1 : 2
+          }}>
+            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
               Alt Kategoriler
             </Typography>
             
-            {/* Mevcut Alt Kategoriler */}
             {subcategories.length > 0 && (
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant="body2" gutterBottom>
                   Mevcut Alt Kategoriler
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={isMobile ? 1 : 2}>
                   {subcategories.map((subcat, index) => (
                     <Grid item xs={12} sm={6} key={index}>
-                      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                      <Paper sx={{ 
+                        p: isMobile ? 1 : 2, 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        borderRadius: isMobile ? 1 : 2
+                      }}>
                         {subcat.imageUrl && (
                           <Avatar 
                             src={subcat.imageUrl} 
-                            sx={{ width: 40, height: 40, mr: 2 }}
+                            sx={{ 
+                              width: isMobile ? 32 : 40, 
+                              height: isMobile ? 32 : 40, 
+                              mr: isMobile ? 1 : 2 
+                            }}
                             variant="rounded"
                           />
                         )}
-                        <Typography sx={{ flexGrow: 1 }}>{subcat.name}</Typography>
+                        <Typography sx={{ flexGrow: 1, fontSize: isMobile ? '0.875rem' : '1rem' }}>
+                          {subcat.name}
+                        </Typography>
                         <IconButton 
                           onClick={() => setSubcategories(subcategories.filter((_, i) => i !== index))}
-                          size="small"
+                          size={isMobile ? "small" : "medium"}
                           color="error"
                         >
-                          <Delete fontSize="small" />
+                          <Delete fontSize={isMobile ? "small" : "medium"} />
                         </IconButton>
                       </Paper>
                     </Grid>
@@ -174,34 +199,31 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               </Box>
             )}
 
-            {/* Yeni Alt Kategori Ekle */}
-            <Typography variant="subtitle2" gutterBottom>
+            <Typography variant="body2" gutterBottom>
               Yeni Alt Kategori Ekle
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={5}>
+            <Grid container spacing={isMobile ? 1 : 2} alignItems="center">
+              <Grid item xs={12} sm={5}>
                 <TextField
                   fullWidth
                   label="Alt Kategori Adı"
                   value={newSubcategory}
                   onChange={(e) => setNewSubcategory(e.target.value)}
-                  size="small"
+                  size={isMobile ? "small" : "medium"}
                 />
               </Grid>
-              <Grid item xs={12} md={5}>
+              <Grid item xs={12} sm={5}>
                 <Button
                   component="label"
                   variant="outlined"
                   startIcon={<CloudUpload />}
                   fullWidth
-                  size="small"
+                  size={isMobile ? "small" : "medium"}
                   disabled={uploading}
+                  sx={{ py: isMobile ? 1 : undefined }}
                 >
                   {uploading ? (
-                    <>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      Yükleniyor...
-                    </>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
                   ) : (
                     'Resim Yükle'
                   )}
@@ -213,16 +235,17 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   />
                 </Button>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid item xs={12} sm={2}>
                 <Button
                   onClick={handleAddSubcategory}
                   variant="contained"
                   startIcon={<Add />}
                   disabled={!newSubcategory.trim() || uploading}
                   fullWidth
-                  size="small"
+                  size={isMobile ? "small" : "medium"}
+                  sx={{ py: isMobile ? 1 : undefined }}
                 >
-                  Ekle
+                  {isMobile ? '+' : 'Ekle'}
                 </Button>
               </Grid>
             </Grid>
@@ -230,7 +253,11 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                 <Avatar 
                   src={newSubcategoryImage} 
-                  sx={{ width: 30, height: 30, mr: 1 }}
+                  sx={{ 
+                    width: isMobile ? 28 : 32, 
+                    height: isMobile ? 28 : 32, 
+                    mr: 1 
+                  }}
                   variant="rounded"
                 />
                 <Typography variant="caption">Resim hazır</Typography>
@@ -241,16 +268,27 @@ export default function CategoryForm({ category, onSave, onCancel }) {
 
         {/* Form İşlemleri */}
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button onClick={onCancel} variant="outlined" size="large">
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: isMobile ? 1 : 2,
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
+            <Button 
+              onClick={onCancel} 
+              variant="outlined" 
+              size={isMobile ? "medium" : "large"}
+              fullWidth={isMobile}
+            >
               İptal
             </Button>
             <Button 
               type="submit" 
               variant="contained" 
               color="primary"
-              size="large"
+              size={isMobile ? "medium" : "large"}
               disabled={uploading}
+              fullWidth={isMobile}
             >
               Kategoriyi Kaydet
             </Button>

@@ -17,13 +17,18 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import ItemForm from '../../components/Admin/ItemForm';
 import { getItems, createItem, updateItem, deleteItem } from '../../services/api';
 
 export default function Items() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
@@ -44,7 +49,7 @@ export default function Items() {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: 'Failed to fetch products',
+        message: 'Ürünler yüklenirken hata oluştu',
         severity: 'error'
       });
     } finally {
@@ -58,14 +63,14 @@ export default function Items() {
         await updateItem(currentItem._id, itemData);
         setSnackbar({
           open: true,
-          message: 'Product updated successfully',
+          message: 'Ürün başarıyla güncellendi',
           severity: 'success'
         });
       } else {
         await createItem(itemData);
         setSnackbar({
           open: true,
-          message: 'Product created successfully',
+          message: 'Ürün başarıyla oluşturuldu',
           severity: 'success'
         });
       }
@@ -75,20 +80,10 @@ export default function Items() {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Failed to save product',
+        message: err.response?.data?.message || 'İşlem başarısız oldu',
         severity: 'error'
       });
     }
-  };
-
-  const handleEdit = (item) => {
-    setCurrentItem(item);
-    setOpenForm(true);
-  };
-
-  const handleDeleteConfirm = (item) => {
-    setItemToDelete(item);
-    setDeleteConfirm(true);
   };
 
   const handleDelete = async () => {
@@ -96,14 +91,14 @@ export default function Items() {
       await deleteItem(itemToDelete._id);
       setSnackbar({
         open: true,
-        message: 'Product deleted successfully',
+        message: 'Ürün başarıyla silindi',
         severity: 'success'
       });
       fetchItems();
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Failed to delete product',
+        message: err.response?.data?.message || 'Silme işlemi başarısız',
         severity: 'error'
       });
     } finally {
@@ -116,9 +111,9 @@ export default function Items() {
   }, []);
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Ürünler</Typography>
+    <Box sx={{ p: isMobile ? 1 : 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant={isMobile ? "h5" : "h4"}>Ürün Yönetimi</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -126,8 +121,9 @@ export default function Items() {
             setCurrentItem(null);
             setOpenForm(true);
           }}
+          size={isMobile ? "small" : "medium"}
         >
-          Ürün Ekle
+          {isMobile ? 'Yeni' : 'Yeni Ürün'}
         </Button>
       </Box>
 
@@ -136,28 +132,49 @@ export default function Items() {
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            maxWidth: '100%',
+            overflowX: 'auto',
+            boxShadow: 'none',
+            border: '1px solid #eee'
+          }}
+        >
+          <Table size={isMobile ? "small" : "medium"}>
             <TableHead>
               <TableRow>
-                <TableCell>İsim</TableCell>
-                <TableCell>Kategori</TableCell>
+                <TableCell>Ürün Adı</TableCell>
+                {!isMobile && <TableCell>Kategori</TableCell>}
                 <TableCell>Fiyat</TableCell>
-                <TableCell>İşlem</TableCell>
+                <TableCell align="right">İşlemler</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item._id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
+                <TableRow key={item._id} hover>
+                  <TableCell sx={{ maxWidth: isMobile ? 120 : 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.name}
+                  </TableCell>
+                  {!isMobile && <TableCell>{item.category}</TableCell>}
                   <TableCell>₺{item.price?.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(item)}>
-                      <Edit />
+                  <TableCell align="right">
+                    <IconButton 
+                      onClick={() => handleEdit(item)} 
+                      size={isMobile ? "small" : "medium"}
+                      sx={{ mr: 1 }}
+                    >
+                      <Edit fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
-                    <IconButton onClick={() => handleDeleteConfirm(item)}>
-                      <Delete />
+                    <IconButton 
+                      onClick={() => {
+                        setItemToDelete(item);
+                        setDeleteConfirm(true);
+                      }} 
+                      size={isMobile ? "small" : "medium"}
+                      color="error"
+                    >
+                      <Delete fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -170,10 +187,13 @@ export default function Items() {
       <Dialog
         open={deleteConfirm}
         onClose={() => setDeleteConfirm(false)}
+        fullScreen={isMobile}
       >
-        <DialogTitle>Ürünü Sil</DialogTitle>
+        <DialogTitle>Ürün Silme</DialogTitle>
         <DialogContent>
-          "{itemToDelete?.name}" ürününü silmek istediğinizden emin misiniz?
+          <Typography>
+            "{itemToDelete?.name}" isimli ürünü silmek istediğinize emin misiniz?
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
@@ -184,11 +204,12 @@ export default function Items() {
       <Dialog 
         open={openForm} 
         onClose={() => setOpenForm(false)} 
-        maxWidth="md" 
+        fullScreen={isMobile}
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle>{currentItem ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle'}</DialogTitle>
-        <DialogContent>
+        <DialogTitle>{currentItem ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}</DialogTitle>
+        <DialogContent dividers>
           <ItemForm 
             onSave={handleSave} 
             onCancel={() => {
@@ -204,10 +225,12 @@ export default function Items() {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
           severity={snackbar.severity}
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>

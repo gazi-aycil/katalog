@@ -17,13 +17,18 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import CategoryForm from '../../components/Admin/CategoryForm';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../services/api';
 
 export default function Categories() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
@@ -44,7 +49,7 @@ export default function Categories() {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: 'Failed to fetch categories',
+        message: 'Kategoriler yüklenirken hata oluştu',
         severity: 'error'
       });
     } finally {
@@ -58,14 +63,14 @@ export default function Categories() {
         await updateCategory(currentCategory._id, categoryData);
         setSnackbar({
           open: true,
-          message: 'Category updated successfully',
+          message: 'Kategori başarıyla güncellendi',
           severity: 'success'
         });
       } else {
         await createCategory(categoryData);
         setSnackbar({
           open: true,
-          message: 'Category created successfully',
+          message: 'Kategori başarıyla oluşturuldu',
           severity: 'success'
         });
       }
@@ -74,7 +79,7 @@ export default function Categories() {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Operation failed',
+        message: err.response?.data?.message || 'İşlem başarısız oldu',
         severity: 'error'
       });
     }
@@ -85,14 +90,14 @@ export default function Categories() {
       await deleteCategory(categoryToDelete._id);
       setSnackbar({
         open: true,
-        message: 'Category deleted successfully',
+        message: 'Kategori başarıyla silindi',
         severity: 'success'
       });
       fetchCategories();
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Delete failed',
+        message: err.response?.data?.message || 'Silme işlemi başarısız',
         severity: 'error'
       });
     } finally {
@@ -105,9 +110,9 @@ export default function Categories() {
   }, []);
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Kategoriler</Typography>
+    <Box sx={{ p: isMobile ? 1 : 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant={isMobile ? "h5" : "h4"}>Kategori Yönetimi</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -115,8 +120,9 @@ export default function Categories() {
             setCurrentCategory(null);
             setOpenForm(true);
           }}
+          size={isMobile ? "small" : "medium"}
         >
-          Kategori Ekle
+          {isMobile ? 'Yeni' : 'Yeni Kategori'}
         </Button>
       </Box>
 
@@ -125,34 +131,52 @@ export default function Categories() {
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            maxWidth: '100%',
+            overflowX: 'auto',
+            boxShadow: 'none',
+            border: '1px solid #eee'
+          }}
+        >
+          <Table size={isMobile ? "small" : "medium"}>
             <TableHead>
               <TableRow>
-                <TableCell>Kategori</TableCell>
-                <TableCell>Altkategoriler</TableCell>
-                <TableCell>İşlemler</TableCell>
+                <TableCell>Kategori Adı</TableCell>
+                {!isMobile && <TableCell>Alt Kategoriler</TableCell>}
+                <TableCell align="right">İşlemler</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {categories.map((category) => (
-                <TableRow key={category._id}>
+                <TableRow key={category._id} hover>
                   <TableCell>{category.name}</TableCell>
-                  <TableCell>
-                    {category.subcategories?.map(sc => sc.name).join(', ')}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => {
-                      setCurrentCategory(category);
-                      setOpenForm(true);
-                    }}>
-                      <Edit />
+                  {!isMobile && (
+                    <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {category.subcategories?.map(sc => sc.name).join(', ')}
+                    </TableCell>
+                  )}
+                  <TableCell align="right">
+                    <IconButton 
+                      onClick={() => {
+                        setCurrentCategory(category);
+                        setOpenForm(true);
+                      }} 
+                      size={isMobile ? "small" : "medium"}
+                      sx={{ mr: 1 }}
+                    >
+                      <Edit fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
-                    <IconButton onClick={() => {
-                      setCategoryToDelete(category);
-                      setDeleteConfirm(true);
-                    }}>
-                      <Delete />
+                    <IconButton 
+                      onClick={() => {
+                        setCategoryToDelete(category);
+                        setDeleteConfirm(true);
+                      }} 
+                      size={isMobile ? "small" : "medium"}
+                      color="error"
+                    >
+                      <Delete fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -165,10 +189,18 @@ export default function Categories() {
       <Dialog
         open={deleteConfirm}
         onClose={() => setDeleteConfirm(false)}
+        fullScreen={isMobile}
       >
-        <DialogTitle> Kategoriyi Sil</DialogTitle>
+        <DialogTitle>Kategori Silme</DialogTitle>
         <DialogContent>
-          Silmek İstediğinizden Emin misinz?"{categoryToDelete?.name}"?
+          <Typography>
+            "{categoryToDelete?.name}" isimli kategoriyi silmek istediğinize emin misiniz?
+          </Typography>
+          {categoryToDelete?.subcategories?.length > 0 && (
+            <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+              Uyarı: Bu kategori altında {categoryToDelete.subcategories.length} alt kategori bulunmaktadır.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteConfirm(false)}>İptal</Button>
@@ -178,14 +210,13 @@ export default function Categories() {
 
       <Dialog 
         open={openForm} 
-        onClose={() => setOpenForm(false)}
-        fullWidth
+        onClose={() => setOpenForm(false)} 
+        fullScreen={isMobile}
         maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>
-          {currentCategory ? 'Edit Category' : 'Add New Category'}
-        </DialogTitle>
-        <DialogContent>
+        <DialogTitle>{currentCategory ? 'Kategori Düzenle' : 'Yeni Kategori Ekle'}</DialogTitle>
+        <DialogContent dividers>
           <CategoryForm
             category={currentCategory}
             onSave={handleSave}
@@ -198,10 +229,12 @@ export default function Categories() {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
           severity={snackbar.severity}
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>
