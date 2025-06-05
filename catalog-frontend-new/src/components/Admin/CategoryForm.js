@@ -12,10 +12,11 @@ import {
   Divider,
   Stack,
   Paper,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import { Add, Delete, CloudUpload } from '@mui/icons-material';
-import { uploadCategoryImage } from '../../services/api';
+import { uploadProductImages } from '../../services/api';
 
 export default function CategoryForm({ category, onSave, onCancel }) {
   const [name, setName] = useState(category?.name || '');
@@ -36,8 +37,13 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   
     try {
       setUploading(true);
-      const imageUrl = await uploadCategoryImage(file);
-      setImage(imageUrl);
+      const formData = new FormData();
+      formData.append('images', file);
+      
+      const response = await uploadProductImages(formData);
+      if (response.data.imageUrls && response.data.imageUrls.length > 0) {
+        setImage(response.data.imageUrls[0]);
+      }
     } catch (err) {
       console.error('Resim yükleme hatası:', err);
       alert('Resim yüklenirken hata oluştu');
@@ -45,6 +51,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
       setUploading(false);
     }
   };
+
   const handleAddSubcategory = () => {
     if (newSubcategory.trim()) {
       setSubcategories([...subcategories, {
@@ -95,8 +102,16 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                     startIcon={<CloudUpload />}
                     fullWidth
                     size="small"
+                    disabled={uploading}
                   >
-                    Kategori Resmi Yükle
+                    {uploading ? (
+                      <>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Yükleniyor...
+                      </>
+                    ) : (
+                      'Kategori Resmi Yükle'
+                    )}
                     <Input
                       type="file"
                       hidden
@@ -180,8 +195,16 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   startIcon={<CloudUpload />}
                   fullWidth
                   size="small"
+                  disabled={uploading}
                 >
-                  Resim Yükle
+                  {uploading ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      Yükleniyor...
+                    </>
+                  ) : (
+                    'Resim Yükle'
+                  )}
                   <Input
                     type="file"
                     hidden
@@ -195,7 +218,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                   onClick={handleAddSubcategory}
                   variant="contained"
                   startIcon={<Add />}
-                  disabled={!newSubcategory.trim()}
+                  disabled={!newSubcategory.trim() || uploading}
                   fullWidth
                   size="small"
                 >
@@ -227,6 +250,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               variant="contained" 
               color="primary"
               size="large"
+              disabled={uploading}
             >
               Kategoriyi Kaydet
             </Button>
