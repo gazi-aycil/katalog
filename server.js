@@ -3,37 +3,25 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const { body, validationResult } = require('express-validator');
+const ImageKit = require('imagekit');
 const app = express();
 const PORT = 5002;
-const path = require('path');
-const upload = multer({ dest: 'uploads/' });
 
+// Initialize ImageKit
+const imagekit = new ImageKit({
+  publicKey: 'public_UjYJw52KefpFNDwLgSX84uFPlnw=',
+  privateKey: 'private_Ah0UG/lM0+LaTvdurbXhnUy2ePk=',
+  urlEndpoint: 'https://ik.imagekit.io/4t0zibpdh/'
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// File upload configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
-});
-app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
-  try {
-    const imageUrls = req.files.map(file => 
-      `${req.protocol}://${req.get('host')}/uploads/${file.filename}`
-    );
-    res.json({ imageUrls });
-  } catch (err) {
-    res.status(500).json({ message: 'Image upload failed' });
-  }
-});
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Connect to MongoDB
 mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/makrofis?retryWrites=true&w=majority&appName=catalog-app&', {
@@ -53,25 +41,23 @@ mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.m
 
 // Schemas
 const categorySchema = new mongoose.Schema({
- 
   name: { type: String, required: true },
   subcategories: [{
     name: { type: String, required: true },
-    imageUrl: String  // Add imageUrl for subcategories
+    imageUrl: String
   }],
-  imageUrl: String  // Add imageUrl for categories
+  imageUrl: String
 }, { timestamps: true });
 
-// Update your itemSchema
 const itemSchema = new mongoose.Schema({
-  barcode: {type:String, required: true},
+  barcode: { type: String, required: true },
   name: { type: String, required: true },
   description: String,
   category: { type: String, required: true },
   subcategory: String,
   price: { type: Number, required: true },
   specs: [String],
-  images: [String],  // Array of image URLs for products
+  images: [String],
 }, { timestamps: true });
 
 // Models
@@ -96,6 +82,7 @@ app.get('/api/items', async (req, res) => {
     });
   }
 });
+
 app.get('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -243,8 +230,7 @@ app.delete('/api/categories/:id', async (req, res) => {
   }
 });
 
-// PRODUCTS ENDPOINTS (Filtered by category/subcategory)
-// Get single product by ID
+// PRODUCTS ENDPOINTS
 app.get('/api/items/id/:productId', async (req, res) => {
   try {
     const product = await Item.findById(req.params.productId).select('-__v');
@@ -257,7 +243,6 @@ app.get('/api/items/id/:productId', async (req, res) => {
   }
 });
 
-// Get items by category/subcategory
 app.get('/api/items/filter', async (req, res) => {
   try {
     const { category, subcategory } = req.query;
@@ -272,23 +257,19 @@ app.get('/api/items/filter', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
   try {
     const { categoryName, subcategoryName } = req.params;
     
-    // Build query object
     const query = { category: categoryName };
     if (subcategoryName) {
       query.subcategory = subcategoryName;
     }
 
-    // Get products with category/subcategory filter
     const products = await Item.find(query).select('-__v');
-    
-    // Get category details
     const category = await Category.findOne({ name: categoryName }).select('-__v');
     
-    // Prepare response
     const response = {
       category: category?.name || categoryName,
       subcategory: subcategoryName || null,
@@ -317,16 +298,39 @@ app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
   }
 });
 
-// FILE UPLOAD ENDPOINT (updated to handle multiple files)
-app.post('/api/upload', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
-  // In production, you would upload to cloud storage (AWS S3, etc.)
-  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  res.json({ imageUrl });
-});
+// IMAGE UPLOAD ENDPOINT (ImageKit integration)
+app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
 
+    const uploadPromises = req.files.map(file => {
+      return new Promise((resolve, reject) => {
+        imagekit.upload({
+          file: file.buffer,
+          fileName: `${Date.now()}-${file.originalname}`,
+          folder: '/catalog-app'
+        }, (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result.url);
+          }
+        });
+      });
+    });
+
+    const imageUrls = await Promise.all(uploadPromises);
+    res.json({ imageUrls });
+  } catch (err) {
+    console.error('Image upload failed:', err);
+    res.status(500).json({ 
+      message: 'Image upload failed', 
+      error: err.message 
+    });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {
