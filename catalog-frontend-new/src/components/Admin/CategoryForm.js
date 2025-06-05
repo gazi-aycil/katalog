@@ -15,6 +15,7 @@ import {
   Grid
 } from '@mui/material';
 import { Add, Delete, CloudUpload } from '@mui/icons-material';
+import { uploadCategoryImage } from '../../services/api';
 
 export default function CategoryForm({ category, onSave, onCancel }) {
   const [name, setName] = useState(category?.name || '');
@@ -27,18 +28,23 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   const [newSubcategory, setNewSubcategory] = useState('');
   const [newSubcategoryImage, setNewSubcategoryImage] = useState(null);
   const [categoryImage, setCategoryImage] = useState(category?.imageUrl || '');
+  const [uploading, setUploading] = useState(false);
 
-  const handleImageUpload = (e, setImage) => {
+  const handleImageUpload = async (e, setImage) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+  
+    try {
+      setUploading(true);
+      const imageUrl = await uploadCategoryImage(file);
+      setImage(imageUrl);
+    } catch (err) {
+      console.error('Resim yükleme hatası:', err);
+      alert('Resim yüklenirken hata oluştu');
+    } finally {
+      setUploading(false);
     }
   };
-
   const handleAddSubcategory = () => {
     if (newSubcategory.trim()) {
       setSubcategories([...subcategories, {
