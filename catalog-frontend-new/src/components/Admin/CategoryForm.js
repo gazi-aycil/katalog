@@ -31,20 +31,22 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   const [categoryImage, setCategoryImage] = useState(category?.imageUrl || '');
   const [uploading, setUploading] = useState(false);
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files).slice(0, 10 - images.length);
-    if (files.length === 0) return;
-    
-    setUploading(true);
-    
+  const handleImageUpload = async (e, setImage) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
     try {
+      setUploading(true);
       const formData = new FormData();
-      files.forEach(file => formData.append('images', file));
+      formData.append('images', file);
       
       const response = await uploadProductImages(formData);
-      setImages(prev => [...prev, ...response.data.imageUrls]);
+      if (response.data.imageUrls && response.data.imageUrls.length > 0) {
+        setImage(response.data.imageUrls[0]);
+      }
     } catch (err) {
-      console.error('Yükleme başarısız:', err);
+      console.error('Resim yükleme hatası:', err);
+      alert('Resim yüklenirken hata oluştu');
     } finally {
       setUploading(false);
     }
