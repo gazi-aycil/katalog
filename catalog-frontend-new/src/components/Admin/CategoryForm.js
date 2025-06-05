@@ -28,7 +28,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
   const [newSubcategory, setNewSubcategory] = useState('');
   const [newSubcategoryImage, setNewSubcategoryImage] = useState(null);
   const [categoryImage, setCategoryImage] = useState(category?.imageUrl || '');
-  const [uploading, setUploading] = useState(false);
+  const [uploadCategoryImage, setUploading] = useState(false);
 
   const handleImageUpload = async (e, setImage) => {
     const file = e.target.files[0];
