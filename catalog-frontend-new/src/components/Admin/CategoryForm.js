@@ -228,7 +228,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               color="primary"
               size="large"
             >
-              Kategoriyi Kaydet
+              Kategoriyi Kaydet0
             </Button>
           </Box>
         </Grid>
