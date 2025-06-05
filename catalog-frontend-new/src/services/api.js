@@ -49,3 +49,18 @@ export const uploadImages = (formData) => {
   });
 };
 
+export const uploadImage = (formData) => {
+  return API.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+export const uploadProductImages = (formData) => {
+  return API.post('/upload-images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
