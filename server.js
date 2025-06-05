@@ -24,7 +24,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/makrofis?retryWrites=true&w=majority&appName=catalog-app&', {
+mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/ravinzo?retryWrites=true&w=majority&appName=catalog-app&', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   retryWrites: true,
