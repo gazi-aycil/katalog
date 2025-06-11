@@ -105,6 +105,10 @@ export default function Items() {
       setDeleteConfirm(false);
     }
   };
+  const handleEdit = (item) => {
+    setCurrentItem(item);
+    setOpenForm(true);
+  };
 
   useEffect(() => {
     fetchItems();
