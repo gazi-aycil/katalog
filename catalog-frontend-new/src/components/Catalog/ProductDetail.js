@@ -30,7 +30,7 @@ const ProductDetail = ({ product, loading }) => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+       
       </Box>
     );
   }
