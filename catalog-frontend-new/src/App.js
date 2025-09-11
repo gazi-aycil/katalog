@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import CatalogFrontend from './Pages/Catalog/CatalogFrontend';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import AdminLayout from './components/Layout/AdminLayout';
@@ -32,7 +31,6 @@ function App() {
         <Routes>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
-             <Route path="/" element={<CatalogFrontend />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="products" element={<Items />} />
           </Route>
