@@ -6,7 +6,7 @@ import AdminLayout from './components/Layout/AdminLayout';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminCategories from './pages/Admin/Categories';
 import Items from './pages/Admin/Items';
-import CatalogHome from './pages/CatalogHome';
+import CatalogHome from './pages/Catalog/CatalogHome';
 import NotFound from './pages/NotFound';
 
 // Özel tema - Şık ve elit bir tasarım için
