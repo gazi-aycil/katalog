@@ -335,8 +335,11 @@ app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
     const { categoryName, subcategoryName } = req.params;
     console.log('İstek geldi - Kategori:', categoryName, 'Alt Kategori:', subcategoryName);
     
-    // Kategoriyi bul
-    const category = await Category.findOne({ name: categoryName }).select('-__v');
+    // Kategoriyi case-insensitive bul
+    const category = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${categoryName}$`, 'i') } 
+    }).select('-__v');
+    
     console.log('Bulunan kategori:', category);
     
     if (!category) {
@@ -349,13 +352,22 @@ app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
       });
     }
     
-    // Ürünleri filtrele
-    const query = { category: categoryName };
+    // Ürünleri filtrele - kategori ismini database'de kayıtlı olan haliyle kullan
+    const query = { category: category.name }; // category.name kullanıyoruz
     console.log('Başlangıç query:', query);
     
     if (subcategoryName) {
-      query.subcategory = subcategoryName;
-      console.log('Alt kategori filtresi eklendi:', query);
+      // Alt kategoriyi de case-insensitive bul
+      const subcategory = category.subcategories.find(
+        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
+      );
+      
+      if (subcategory) {
+        query.subcategory = subcategory.name; // database'deki ismi kullan
+        console.log('Alt kategori filtresi eklendi:', query);
+      } else {
+        console.log('Alt kategori bulunamadı:', subcategoryName);
+      }
     }
 
     const products = await Item.find(query).select('-__v');
@@ -364,7 +376,9 @@ app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
     // Alt kategori resmini bul
     let subcategoryImage = null;
     if (subcategoryName && category.subcategories) {
-      const subcat = category.subcategories.find(sc => sc.name === subcategoryName);
+      const subcat = category.subcategories.find(
+        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
+      );
       subcategoryImage = subcat ? subcat.imageUrl : null;
       console.log('Alt kategori resmi:', subcategoryImage);
     }
@@ -457,6 +471,8 @@ app.get('/api/health', async (req, res) => {
     
     // Kategori sayısını al
     const categoryCount = await Category.countDocuments();
+    // Ürün sayısını al
+    const itemCount = await Item.countDocuments();
     
     res.json({ 
       status: 'OK', 
@@ -464,7 +480,8 @@ app.get('/api/health', async (req, res) => {
       database: {
         status: dbStatusText,
         connected: dbStatus === 1,
-        categoryCount: categoryCount
+        categoryCount: categoryCount,
+        itemCount: itemCount
       },
       timestamp: new Date().toISOString()
     });
@@ -490,4 +507,5 @@ app.listen(PORT, () => {
   console.log(`Debug Endpoints:`);
   console.log(`- http://localhost:${PORT}/api/debug/categories`);
   console.log(`- http://localhost:${PORT}/api/debug/items`);
+  console.log(`- http://localhost:${PORT}/api/categories`);
 });
