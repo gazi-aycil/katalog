@@ -1,4 +1,3 @@
-// src/components/Catalog/ProductGrid.js
 import React from 'react';
 import {
   Grid,
@@ -28,13 +27,8 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
     <Box>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
-          {category?.name}
+          {subcategory ? subcategory.name : category?.name}
         </Typography>
-        {subcategory && (
-          <Typography variant="h5" color="primary" gutterBottom>
-            {subcategory.name}
-          </Typography>
-        )}
         <Typography variant="body1" color="text.secondary">
           {products.length} ürün
         </Typography>

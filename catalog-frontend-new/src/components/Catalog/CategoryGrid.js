@@ -1,4 +1,3 @@
-// src/components/Catalog/CategoryGrid.js
 import React from 'react';
 import {
   Grid,
@@ -6,8 +5,7 @@ import {
   CardMedia,
   CardContent,
   Typography,
-  Box,
-  Chip
+  Box
 } from '@mui/material';
 import { useTheme, useMediaQuery } from '@mui/material';
 
@@ -73,42 +71,11 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                 <Typography 
                   variant="body2" 
                   color="text.secondary"
-                  sx={{ mb: 2 }}
                 >
-                  {category.subcategories?.length || 0} alt kategori
+                  {category.subcategories?.length > 0 
+                    ? `${category.subcategories.length} alt kategori` 
+                    : 'Ürünleri görüntüle'}
                 </Typography>
-                
-                {category.subcategories && category.subcategories.length > 0 && (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
-                    {category.subcategories.slice(0, 3).map((subcat, index) => (
-                      <Chip
-                        key={index}
-                        label={subcat.name}
-                        size="small"
-                        variant="outlined"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCategorySelect(category, subcat);
-                        }}
-                        sx={{ 
-                          fontSize: '0.7rem',
-                          '&:hover': {
-                            backgroundColor: 'primary.main',
-                            color: 'white'
-                          }
-                        }}
-                      />
-                    ))}
-                    {category.subcategories.length > 3 && (
-                      <Chip
-                        label={`+${category.subcategories.length - 3}`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                    )}
-                  </Box>
-                )}
               </CardContent>
             </Card>
           </Grid>
