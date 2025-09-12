@@ -195,10 +195,24 @@ app.delete('/api/items/:id', async (req, res) => {
 // CATEGORY ENDPOINTS
 app.get('/api/categories', async (req, res) => {
   try {
-    const categories = await Category.find();
+    console.log('Kategoriler isteniyor...');
+    
+    const categories = await Category.find().lean();
+    
+    if (!categories || categories.length === 0) {
+      console.log('Hiç kategori bulunamadı');
+      return res.status(200).json([]);
+    }
+    
+    console.log(`${categories.length} kategori bulundu`);
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Kategoriler getirilirken hata:', err);
+    res.status(500).json({ 
+      message: 'Kategoriler getirilirken hata oluştu',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
