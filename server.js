@@ -258,42 +258,73 @@ app.get('/api/items/filter', async (req, res) => {
   }
 });
 
+// DÜZELTİLMİŞ ENDPOINT - Frontend ile uyumlu hale getirildi
 app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
   try {
     const { categoryName, subcategoryName } = req.params;
     
+    // Kategoriyi bul
+    const category = await Category.findOne({ name: categoryName }).select('-__v');
+    
+    if (!category) {
+      return res.status(404).json({ 
+        message: `Kategori bulunamadı: ${categoryName}`,
+        category: categoryName,
+        subcategory: subcategoryName || null,
+        products: []
+      });
+    }
+    
+    // Ürünleri filtrele
     const query = { category: categoryName };
     if (subcategoryName) {
       query.subcategory = subcategoryName;
     }
 
     const products = await Item.find(query).select('-__v');
-    const category = await Category.findOne({ name: categoryName }).select('-__v');
     
+    // Alt kategori resmini bul
+    let subcategoryImage = null;
+    if (subcategoryName && category.subcategories) {
+      const subcat = category.subcategories.find(sc => sc.name === subcategoryName);
+      subcategoryImage = subcat ? subcat.imageUrl : null;
+    }
+
     const response = {
-      category: category?.name || categoryName,
+      category: category.name,
       subcategory: subcategoryName || null,
       products: products,
-      categoryImage: category?.imageUrl || null,
-      subcategoryImage: subcategoryName 
-        ? category?.subcategories?.find(sc => sc.name === subcategoryName)?.imageUrl 
-        : null
+      categoryImage: category.imageUrl || null,
+      subcategoryImage: subcategoryImage
     };
-
-    if (products.length === 0) {
-      return res.status(404).json({ 
-        ...response,
-        message: subcategoryName 
-          ? `No products found in ${categoryName} > ${subcategoryName}`
-          : `No products found in ${categoryName} category`
-      });
-    }
 
     res.json(response);
   } catch (err) {
+    console.error('Kategori ürünleri getirilirken hata:', err);
     res.status(500).json({ 
-      message: err.message,
-      error: err 
+      message: 'Ürünler getirilirken hata oluştu',
+      error: err.message 
+    });
+  }
+});
+
+// YENİ ENDPOINT: Kategoriye göre ürün getirme (alternatif)
+app.get('/api/categories/:categoryName/products', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    const { subcategory } = req.query;
+    
+    const query = { category: categoryName };
+    if (subcategory) {
+      query.subcategory = subcategory;
+    }
+
+    const products = await Item.find(query).select('-__v');
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ 
+      message: 'Ürünler getirilirken hata oluştu',
+      error: err.message 
     });
   }
 });
@@ -330,6 +361,11 @@ app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
       error: err.message 
     });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
 });
 
 // Start the server

@@ -60,7 +60,7 @@ const CatalogFrontend = () => {
       setSelectedCategory(category);
       setSelectedSubcategory(subcategory);
       
-      const response = await getItemsByCategory(category.id, subcategory?.id);
+      const response = await getItemsByCategory(category.name, subcategory?.name);
       setProducts(response.data.products || []);
       setView('category');
       setLoading(false);
