@@ -19,6 +19,12 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// Hata ayıklama middleware'leri
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -33,6 +39,15 @@ mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.m
 .then(() => {
   console.log('Connected to MongoDB Atlas');
   console.log('Database:', mongoose.connection.db.databaseName);
+  
+  // Bağlantı başarılı olduğunda basit bir test yapalım
+  Category.find({}).limit(1)
+    .then(categories => {
+      console.log('Kategori test sorgusu başarılı. Toplam kategori sayısı:', categories.length);
+    })
+    .catch(err => {
+      console.error('Kategori test sorgusu hatası:', err);
+    });
 })
 .catch(err => {
   console.error('Database connection error:', err);
@@ -67,6 +82,48 @@ const Item = mongoose.model('Item', itemSchema);
 // Create indexes
 itemSchema.index({ category: 1, subcategory: 1 });
 categorySchema.index({ name: 1 });
+
+// Debug Endpoints
+app.get('/api/debug/categories', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    console.log('Kategoriler:', categories);
+    res.json({
+      count: categories.length,
+      categories: categories
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/debug/items', async (req, res) => {
+  try {
+    const items = await Item.find();
+    console.log('Tüm ürünler:', items);
+    res.json({
+      count: items.length,
+      items: items
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/debug/items/:categoryName', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    const items = await Item.find({ category: categoryName });
+    console.log(`${categoryName} kategorisindeki ürünler:`, items);
+    res.json({
+      category: categoryName,
+      count: items.length,
+      items: items
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // API Endpoints
 
@@ -276,11 +333,14 @@ app.get('/api/items/filter', async (req, res) => {
 app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
   try {
     const { categoryName, subcategoryName } = req.params;
+    console.log('İstek geldi - Kategori:', categoryName, 'Alt Kategori:', subcategoryName);
     
     // Kategoriyi bul
     const category = await Category.findOne({ name: categoryName }).select('-__v');
+    console.log('Bulunan kategori:', category);
     
     if (!category) {
+      console.log('Kategori bulunamadı:', categoryName);
       return res.status(404).json({ 
         message: `Kategori bulunamadı: ${categoryName}`,
         category: categoryName,
@@ -291,27 +351,33 @@ app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
     
     // Ürünleri filtrele
     const query = { category: categoryName };
+    console.log('Başlangıç query:', query);
+    
     if (subcategoryName) {
       query.subcategory = subcategoryName;
+      console.log('Alt kategori filtresi eklendi:', query);
     }
 
     const products = await Item.find(query).select('-__v');
+    console.log('Bulunan ürünler:', products);
     
     // Alt kategori resmini bul
     let subcategoryImage = null;
     if (subcategoryName && category.subcategories) {
       const subcat = category.subcategories.find(sc => sc.name === subcategoryName);
       subcategoryImage = subcat ? subcat.imageUrl : null;
+      console.log('Alt kategori resmi:', subcategoryImage);
     }
 
     const response = {
       category: category.name,
       subcategory: subcategoryName || null,
-      products: products,
+      products: products, // Burada products dizisini doğrudan gönderiyoruz
       categoryImage: category.imageUrl || null,
       subcategoryImage: subcategoryImage
     };
 
+    console.log('Response hazır:', response);
     res.json(response);
   } catch (err) {
     console.error('Kategori ürünleri getirilirken hata:', err);
@@ -378,11 +444,50 @@ app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // MongoDB bağlantısını test et
+    const dbStatus = mongoose.connection.readyState;
+    const dbStatusText = {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting',
+      3: 'disconnecting'
+    }[dbStatus] || 'unknown';
+    
+    // Kategori sayısını al
+    const categoryCount = await Category.countDocuments();
+    
+    res.json({ 
+      status: 'OK', 
+      message: 'Server is running',
+      database: {
+        status: dbStatusText,
+        connected: dbStatus === 1,
+        categoryCount: categoryCount
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      status: 'ERROR', 
+      message: 'Server error',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ message: 'API endpoint not found' });
 });
 
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`API Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`Debug Endpoints:`);
+  console.log(`- http://localhost:${PORT}/api/debug/categories`);
+  console.log(`- http://localhost:${PORT}/api/debug/items`);
 });
