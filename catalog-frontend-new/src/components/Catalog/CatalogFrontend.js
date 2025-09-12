@@ -13,6 +13,7 @@ import {
   useTheme,
   Grid,
   Card,
+  CardMedia, // ← Bu satırı ekleyin
   CardContent,
   Chip
 } from '@mui/material';
