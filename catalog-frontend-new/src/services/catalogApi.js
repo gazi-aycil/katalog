@@ -1,4 +1,3 @@
-// src/services/catalogApi.js
 import axios from 'axios';
 
 const API = axios.create({
@@ -28,6 +27,11 @@ API.interceptors.response.use(
 // Sadece katalog için gerekli API fonksiyonları
 export const getCategories = () => API.get('/categories');
 export const getItems = () => API.get('/items');
-export const getItemsByCategory = (categoryName, subcategoryName) => 
-  API.get(`/items/${categoryName}/${subcategoryName || ''}`);
+export const getItemsByCategory = (categoryName, subcategoryName = null) => {
+  if (subcategoryName) {
+    return API.get(`/items/${categoryName}/${subcategoryName}`);
+  }
+  return API.get(`/items/${categoryName}`);
+};
 export const getItemById = (id) => API.get(`/items/${id}`);
+export const healthCheck = () => API.get('/health');
