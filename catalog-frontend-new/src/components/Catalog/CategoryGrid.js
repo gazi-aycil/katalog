@@ -56,6 +56,9 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                     transform: 'scale(1.05)'
                   }
                 }}
+                onError={(e) => {
+                  e.target.src = '/placeholder-category.jpg';
+                }}
               />
               <CardContent sx={{ textAlign: 'center', p: 3 }}>
                 <Typography 
