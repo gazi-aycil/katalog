@@ -31,7 +31,8 @@ const upload = multer({ storage: storage });
 
 // Connect to MongoDB
 mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/ravinzo?retryWrites=true&w=majority&appName=catalog-app&', {
-
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
   retryWrites: true,
   w: 'majority'
 })
@@ -68,7 +69,7 @@ const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
   category: { type: String, required: true },
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subcategory: String,
   subcategoryId: { type: mongoose.Schema.Types.ObjectId },
   price: { type: Number, required: true },
@@ -207,10 +208,12 @@ app.post('/api/items',
     body('barcode').trim().notEmpty().withMessage("Barkod Eklemeden Kayıt yapılamaz"),
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('category').trim().notEmpty().withMessage('Category is required'),
+    body('categoryId').isMongoId().withMessage('Valid category ID is required'),
     body('price').isFloat({ min: 0 }).withMessage('Valid price is required'),
     body('specs').optional().isArray(),
     body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
-    body('images').optional().isArray()
+    body('images').optional().isArray(),
+    body('subcategoryId').optional().isMongoId().withMessage('Valid subcategory ID is required')
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -219,8 +222,30 @@ app.post('/api/items',
     }
 
     try {
+      // Kategoriyi doğrula ve ismini al
+      const category = await Category.findById(req.body.categoryId);
+      if (!category) {
+        return res.status(400).json({ 
+          message: 'Geçersiz kategori ID' 
+        });
+      }
+
+      // Alt kategoriyi doğrula (eğer varsa)
+      let subcategoryName = null;
+      if (req.body.subcategoryId) {
+        const subcategory = category.subcategories.id(req.body.subcategoryId);
+        if (!subcategory) {
+          return res.status(400).json({ 
+            message: 'Geçersiz alt kategori ID' 
+          });
+        }
+        subcategoryName = subcategory.name;
+      }
+
       const itemData = {
         ...req.body,
+        category: category.name, // Kategori ismini de kaydet
+        subcategory: subcategoryName, // Alt kategori ismini de kaydet
         specs: req.body.specs || [],
         images: req.body.images || []
       };
@@ -243,10 +268,12 @@ app.put('/api/items/:id',
     body('barcode').trim().notEmpty().withMessage("Barkod Eklemeden Kayıt Yapılamaz"),
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('category').trim().notEmpty().withMessage('Category is required'),
+    body('categoryId').isMongoId().withMessage('Valid category ID is required'),
     body('price').isFloat({ min: 0 }).withMessage('Valid price is required'),
     body('specs').optional().isArray(),
     body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
-    body('images').optional().isArray()
+    body('images').optional().isArray(),
+    body('subcategoryId').optional().isMongoId().withMessage('Valid subcategory ID is required')
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -255,8 +282,30 @@ app.put('/api/items/:id',
     }
 
     try {
+      // Kategori doğrulama
+      const category = await Category.findById(req.body.categoryId);
+      if (!category) {
+        return res.status(400).json({ 
+          message: 'Geçersiz kategori ID' 
+        });
+      }
+
+      // Alt kategori doğrulama
+      let subcategoryName = null;
+      if (req.body.subcategoryId) {
+        const subcategory = category.subcategories.id(req.body.subcategoryId);
+        if (!subcategory) {
+          return res.status(400).json({ 
+            message: 'Geçersiz alt kategori ID' 
+          });
+        }
+        subcategoryName = subcategory.name;
+      }
+
       const updateData = {
         ...req.body,
+        category: category.name,
+        subcategory: subcategoryName,
         specs: req.body.specs || [],
         images: req.body.images || []
       };
@@ -492,6 +541,276 @@ app.post('/api/admin/update-product-references', async (req, res) => {
   }
 });
 
+// Ürünleri güncelleme endpoint'leri
+app.post('/api/admin/update-products', async (req, res) => {
+  try {
+    console.log('Ürün güncelleme işlemi başlatılıyor...');
+    
+    const results = {
+      updatedProducts: 0,
+      updatedCategories: 0,
+      updatedSubcategories: 0,
+      errors: []
+    };
+
+    // 1. Tüm kategorileri al
+    const categories = await Category.find();
+    console.log(`Toplam ${categories.length} kategori bulundu`);
+
+    // 2. Her kategori için işlem yap
+    for (const category of categories) {
+      console.log(`Kategori işleniyor: ${category.name} (${category._id})`);
+      
+      // Kategoriye ait ürünleri güncelle
+      const categoryUpdateResult = await Item.updateMany(
+        { category: category.name },
+        { 
+          $set: { 
+            categoryId: category._id,
+            // Eski verileri yeni formatla eşleştir
+            ...(req.body.updateAllFields && {
+              'specs': { $ifNull: ['$specs', []] },
+              'images': { $ifNull: ['$images', []] },
+              'description': { $ifNull: ['$description', ''] }
+            })
+          } 
+        }
+      );
+
+      if (categoryUpdateResult.modifiedCount > 0) {
+        console.log(`Kategori ${category.name} için ${categoryUpdateResult.modifiedCount} ürün güncellendi`);
+        results.updatedCategories += categoryUpdateResult.modifiedCount;
+      }
+
+      // 3. Alt kategorileri işle
+      if (category.subcategories && category.subcategories.length > 0) {
+        for (const subcategory of category.subcategories) {
+          console.log(`Alt kategori işleniyor: ${subcategory.name} (${subcategory._id})`);
+          
+          const subcategoryUpdateResult = await Item.updateMany(
+            { 
+              category: category.name,
+              subcategory: subcategory.name 
+            },
+            { 
+              $set: { 
+                categoryId: category._id,
+                subcategoryId: subcategory._id,
+                // Eski verileri yeni formatla eşleştir
+                ...(req.body.updateAllFields && {
+                  'specs': { $ifNull: ['$specs', []] },
+                  'images': { $ifNull: ['$images', []] },
+                  'description': { $ifNull: ['$description', ''] }
+                })
+              } 
+            }
+          );
+
+          if (subcategoryUpdateResult.modifiedCount > 0) {
+            console.log(`Alt kategori ${subcategory.name} için ${subcategoryUpdateResult.modifiedCount} ürün güncellendi`);
+            results.updatedSubcategories += subcategoryUpdateResult.modifiedCount;
+          }
+        }
+      }
+    }
+
+    // 4. Tüm ürünlerdeki boş alanları doldur
+    if (req.body.fillEmptyFields) {
+      console.log('Boş alanlar dolduruluyor...');
+      
+      const fillEmptyResult = await Item.updateMany(
+        {
+          $or: [
+            { specs: { $exists: false } },
+            { specs: null },
+            { images: { $exists: false } },
+            { images: null },
+            { description: { $exists: false } },
+            { description: null }
+          ]
+        },
+        {
+          $set: {
+            specs: [],
+            images: [],
+            description: ''
+          }
+        }
+      );
+
+      if (fillEmptyResult.modifiedCount > 0) {
+        console.log(`${fillEmptyResult.modifiedCount} ürünün boş alanları dolduruldu`);
+        results.updatedProducts += fillEmptyResult.modifiedCount;
+      }
+    }
+
+    // 5. categoryId ve subcategoryId'si olmayan ürünleri kontrol et
+    const missingReferencesResult = await Item.updateMany(
+      {
+        $or: [
+          { categoryId: { $exists: false } },
+          { categoryId: null }
+        ]
+      },
+      {
+        $set: {
+          // Varsayılan değerler veya hata işaretleme
+          needsReview: true
+        }
+      }
+    );
+
+    if (missingReferencesResult.modifiedCount > 0) {
+      console.log(`${missingReferencesResult.modifiedCount} ürün referans eksikliği nedeniyle işaretlendi`);
+      results.updatedProducts += missingReferencesResult.modifiedCount;
+    }
+
+    results.updatedProducts = results.updatedCategories + results.updatedSubcategories;
+
+    res.json({
+      message: 'Ürün güncelleme işlemi tamamlandı',
+      results: results,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Ürün güncelleme hatası:', err);
+    res.status(500).json({ 
+      message: 'Ürünler güncellenirken hata oluştu',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Ürün durum raporu endpoint'i
+app.get('/api/admin/products-report', async (req, res) => {
+  try {
+    console.log('Ürün durum raporu oluşturuluyor...');
+    
+    const report = {
+      totalProducts: await Item.countDocuments(),
+      productsWithCategoryId: await Item.countDocuments({ categoryId: { $exists: true, $ne: null } }),
+      productsWithSubcategoryId: await Item.countDocuments({ subcategoryId: { $exists: true, $ne: null } }),
+      productsWithoutCategoryId: await Item.countDocuments({ 
+        $or: [
+          { categoryId: { $exists: false } },
+          { categoryId: null }
+        ]
+      }),
+      productsWithoutSubcategoryId: await Item.countDocuments({ 
+        $or: [
+          { subcategoryId: { $exists: false } },
+          { subcategoryId: null }
+        ]
+      }),
+      productsWithMissingFields: await Item.countDocuments({
+        $or: [
+          { specs: { $exists: false } },
+          { specs: null },
+          { images: { $exists: false } },
+          { images: null },
+          { description: { $exists: false } },
+          { description: null }
+        ]
+      }),
+      productsNeedingReview: await Item.countDocuments({ needsReview: true }),
+      byCategory: {}
+    };
+
+    // Kategori bazlı istatistikler
+    const categories = await Category.find();
+    for (const category of categories) {
+      const categoryProducts = await Item.countDocuments({ category: category.name });
+      const categoryIdProducts = await Item.countDocuments({ categoryId: category._id });
+      
+      report.byCategory[category.name] = {
+        total: categoryProducts,
+        withCategoryId: categoryIdProducts,
+        percentage: categoryProducts > 0 ? Math.round((categoryIdProducts / categoryProducts) * 100) : 0
+      };
+    }
+
+    res.json({
+      message: 'Ürün durum raporu',
+      report: report,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Rapor oluşturma hatası:', err);
+    res.status(500).json({ 
+      message: 'Rapor oluşturulurken hata oluştu',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Tekil ürün düzeltme endpoint'i
+app.post('/api/admin/fix-product/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    console.log(`Ürün düzeltiliyor: ${productId}`);
+    
+    const product = await Item.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Ürün bulunamadı' });
+    }
+
+    // Kategoriyi bul
+    const category = await Category.findOne({ name: product.category });
+    if (!category) {
+      return res.status(404).json({ 
+        message: `Kategori bulunamadı: ${product.category}`,
+        productId: productId
+      });
+    }
+
+    const updateData = {
+      categoryId: category._id,
+      specs: product.specs || [],
+      images: product.images || [],
+      description: product.description || '',
+      needsReview: false
+    };
+
+    // Alt kategoriyi bul (eğer varsa)
+    if (product.subcategory) {
+      const subcategory = category.subcategories.find(
+        sc => sc.name === product.subcategory
+      );
+      
+      if (subcategory) {
+        updateData.subcategoryId = subcategory._id;
+      } else {
+        updateData.needsReview = true;
+        console.log(`Alt kategori bulunamadı: ${product.subcategory}`);
+      }
+    }
+
+    const updatedProduct = await Item.findByIdAndUpdate(
+      productId,
+      { $set: updateData },
+      { new: true }
+    );
+
+    res.json({
+      message: 'Ürün başarıyla güncellendi',
+      product: updatedProduct,
+      changes: updateData
+    });
+
+  } catch (err) {
+    console.error('Ürün düzeltme hatası:', err);
+    res.status(500).json({ 
+      message: 'Ürün düzeltilirken hata oluştu',
+      error: err.message
+    });
+  }
+});
+
 // ESKİ İSİM BAZLI ENDPOINT'LER (Geriye dönük uyumluluk)
 app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
   try {
@@ -679,6 +998,9 @@ app.listen(PORT, () => {
   console.log(`- http://localhost:${PORT}/api/debug/categories-with-ids`);
   console.log(`- http://localhost:${PORT}/api/debug/category/:categoryId`);
   console.log(`- http://localhost:${PORT}/api/categories`);
-  console.log(`\nAdmin Endpoint:`);
+  console.log(`\nAdmin Endpoints:`);
   console.log(`- http://localhost:${PORT}/api/admin/update-product-references (POST)`);
+  console.log(`- http://localhost:${PORT}/api/admin/update-products (POST)`);
+  console.log(`- http://localhost:${PORT}/api/admin/products-report (GET)`);
+  console.log(`- http://localhost:${PORT}/api/admin/fix-product/:productId (POST)`);
 });
