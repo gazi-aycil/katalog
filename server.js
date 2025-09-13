@@ -125,6 +125,23 @@ app.get('/api/debug/items/:categoryName', async (req, res) => {
   }
 });
 
+app.get('/api/debug/categories-with-ids', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    const result = categories.map(cat => ({
+      _id: cat._id,
+      name: cat.name,
+      subcategories: cat.subcategories.map(sub => ({
+        _id: sub._id,
+        name: sub.name
+      }))
+    }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // API Endpoints
 
 // ITEM ENDPOINTS
@@ -227,9 +244,9 @@ app.put('/api/items/:id',
       res.json(updatedItem);
     } catch (err) {
       res.status(400).json({ 
-        message: 'Failed to update item',
-        error: err.message 
-      });
+      message: 'Failed to update item',
+      error: err.message 
+    });
     }
   }
 );
@@ -273,6 +290,18 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: 'Kategori bulunamadı' });
+    }
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.post('/api/categories', async (req, res) => {
   const newCategory = new Category(req.body);
   try {
@@ -301,7 +330,131 @@ app.delete('/api/categories/:id', async (req, res) => {
   }
 });
 
-// PRODUCTS ENDPOINTS
+// ID BAZLI ÜRÜN ENDPOINT'LERİ
+app.get('/api/categories/:categoryId/products', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { subcategoryId } = req.query;
+    
+    console.log('ID ile ürün isteği - Kategori ID:', categoryId, 'Alt Kategori ID:', subcategoryId);
+    
+    // Kategoriyi ID ile bul
+    const category = await Category.findById(categoryId);
+    console.log('Bulunan kategori:', category);
+    
+    if (!category) {
+      return res.status(404).json({ 
+        message: `Kategori bulunamadı: ${categoryId}`,
+        products: []
+      });
+    }
+    
+    // Ürünleri filtrele
+    const query = { category: category.name };
+    
+    if (subcategoryId) {
+      // Alt kategoriyi bul
+      const subcategory = category.subcategories.id(subcategoryId);
+      if (subcategory) {
+        query.subcategory = subcategory.name;
+        console.log('Alt kategori filtresi eklendi:', query);
+      }
+    }
+
+    const products = await Item.find(query).select('-__v');
+    console.log('Bulunan ürünler:', products.length);
+    
+    res.json({
+      category: {
+        _id: category._id,
+        name: category.name,
+        imageUrl: category.imageUrl
+      },
+      subcategory: subcategoryId ? category.subcategories.id(subcategoryId) : null,
+      products: products
+    });
+  } catch (err) {
+    console.error('ID ile ürün getirme hatası:', err);
+    res.status(500).json({ 
+      message: 'Ürünler getirilirken hata oluştu',
+      error: err.message 
+    });
+  }
+});
+
+// ESKİ İSİM BAZLI ENDPOINT'LER (Geriye dönük uyumluluk)
+app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
+  try {
+    const { categoryName, subcategoryName } = req.params;
+    console.log('İstek geldi - Kategori:', categoryName, 'Alt Kategori:', subcategoryName);
+    
+    // Kategoriyi case-insensitive bul
+    const category = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${categoryName}$`, 'i') } 
+    }).select('-__v');
+    
+    console.log('Bulunan kategori:', category);
+    
+    if (!category) {
+      console.log('Kategori bulunamadı:', categoryName);
+      return res.status(404).json({ 
+        message: `Kategori bulunamadı: ${categoryName}`,
+        category: categoryName,
+        subcategory: subcategoryName || null,
+        products: []
+      });
+    }
+    
+    // Ürünleri filtrele - kategori ismini database'de kayıtlı olan haliyle kullan
+    const query = { category: category.name };
+    console.log('Başlangıç query:', query);
+    
+    if (subcategoryName) {
+      // Alt kategoriyi de case-insensitive bul
+      const subcategory = category.subcategories.find(
+        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
+      );
+      
+      if (subcategory) {
+        query.subcategory = subcategory.name;
+        console.log('Alt kategori filtresi eklendi:', query);
+      } else {
+        console.log('Alt kategori bulunamadı:', subcategoryName);
+      }
+    }
+
+    const products = await Item.find(query).select('-__v');
+    console.log('Bulunan ürünler:', products);
+    
+    // Alt kategori resmini bul
+    let subcategoryImage = null;
+    if (subcategoryName && category.subcategories) {
+      const subcat = category.subcategories.find(
+        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
+      );
+      subcategoryImage = subcat ? subcat.imageUrl : null;
+      console.log('Alt kategori resmi:', subcategoryImage);
+    }
+
+    const response = {
+      category: category.name,
+      subcategory: subcategoryName || null,
+      products: products,
+      categoryImage: category.imageUrl || null,
+      subcategoryImage: subcategoryImage
+    };
+
+    console.log('Response hazır:', response);
+    res.json(response);
+  } catch (err) {
+    console.error('Kategori ürünleri getirilirken hata:', err);
+    res.status(500).json({ 
+      message: 'Ürünler getirilirken hata oluştu',
+      error: err.message 
+    });
+  }
+});
+
 app.get('/api/items/id/:productId', async (req, res) => {
   try {
     const product = await Item.findById(req.params.productId).select('-__v');
@@ -326,100 +479,6 @@ app.get('/api/items/filter', async (req, res) => {
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });
-  }
-});
-
-// DÜZELTİLMİŞ ENDPOINT - Frontend ile uyumlu hale getirildi
-app.get('/api/items/:categoryName/:subcategoryName?', async (req, res) => {
-  try {
-    const { categoryName, subcategoryName } = req.params;
-    console.log('İstek geldi - Kategori:', categoryName, 'Alt Kategori:', subcategoryName);
-    
-    // Kategoriyi case-insensitive bul
-    const category = await Category.findOne({ 
-      name: { $regex: new RegExp(`^${categoryName}$`, 'i') } 
-    }).select('-__v');
-    
-    console.log('Bulunan kategori:', category);
-    
-    if (!category) {
-      console.log('Kategori bulunamadı:', categoryName);
-      return res.status(404).json({ 
-        message: `Kategori bulunamadı: ${categoryName}`,
-        category: categoryName,
-        subcategory: subcategoryName || null,
-        products: []
-      });
-    }
-    
-    // Ürünleri filtrele - kategori ismini database'de kayıtlı olan haliyle kullan
-    const query = { category: category.name }; // category.name kullanıyoruz
-    console.log('Başlangıç query:', query);
-    
-    if (subcategoryName) {
-      // Alt kategoriyi de case-insensitive bul
-      const subcategory = category.subcategories.find(
-        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
-      );
-      
-      if (subcategory) {
-        query.subcategory = subcategory.name; // database'deki ismi kullan
-        console.log('Alt kategori filtresi eklendi:', query);
-      } else {
-        console.log('Alt kategori bulunamadı:', subcategoryName);
-      }
-    }
-
-    const products = await Item.find(query).select('-__v');
-    console.log('Bulunan ürünler:', products);
-    
-    // Alt kategori resmini bul
-    let subcategoryImage = null;
-    if (subcategoryName && category.subcategories) {
-      const subcat = category.subcategories.find(
-        sc => sc.name.toLowerCase() === subcategoryName.toLowerCase()
-      );
-      subcategoryImage = subcat ? subcat.imageUrl : null;
-      console.log('Alt kategori resmi:', subcategoryImage);
-    }
-
-    const response = {
-      category: category.name,
-      subcategory: subcategoryName || null,
-      products: products, // Burada products dizisini doğrudan gönderiyoruz
-      categoryImage: category.imageUrl || null,
-      subcategoryImage: subcategoryImage
-    };
-
-    console.log('Response hazır:', response);
-    res.json(response);
-  } catch (err) {
-    console.error('Kategori ürünleri getirilirken hata:', err);
-    res.status(500).json({ 
-      message: 'Ürünler getirilirken hata oluştu',
-      error: err.message 
-    });
-  }
-});
-
-// YENİ ENDPOINT: Kategoriye göre ürün getirme (alternatif)
-app.get('/api/categories/:categoryName/products', async (req, res) => {
-  try {
-    const { categoryName } = req.params;
-    const { subcategory } = req.query;
-    
-    const query = { category: categoryName };
-    if (subcategory) {
-      query.subcategory = subcategory;
-    }
-
-    const products = await Item.find(query).select('-__v');
-    res.json(products);
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Ürünler getirilirken hata oluştu',
-      error: err.message 
-    });
   }
 });
 
@@ -507,5 +566,6 @@ app.listen(PORT, () => {
   console.log(`Debug Endpoints:`);
   console.log(`- http://localhost:${PORT}/api/debug/categories`);
   console.log(`- http://localhost:${PORT}/api/debug/items`);
+  console.log(`- http://localhost:${PORT}/api/debug/categories-with-ids`);
   console.log(`- http://localhost:${PORT}/api/categories`);
 });

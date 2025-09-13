@@ -13,7 +13,7 @@ import {
   useTheme,
   Grid,
   Card,
-  CardMedia, // ← Bu satırı ekleyin
+  CardMedia,
   CardContent,
   Chip
 } from '@mui/material';
@@ -25,7 +25,7 @@ import {
 import CategoryGrid from './CategoryGrid';
 import ProductGrid from './ProductGrid';
 import ProductDetail from './ProductDetail';
-import { getCategories, getItemsByCategory, getItemById } from '../../services/catalogApi';
+import { getCategories, getProductsByCategoryId, getItemById } from '../../services/catalogApi';
 
 const CatalogFrontend = () => {
   const theme = useTheme();
@@ -36,7 +36,7 @@ const CatalogFrontend = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [view, setView] = useState('home'); // home, subcategories, category, product
+  const [view, setView] = useState('home');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -57,7 +57,7 @@ const CatalogFrontend = () => {
     fetchCategories();
   }, []);
 
-  // Kategori seçildiğinde
+  // Kategori seçildiğinde (ID ile)
   const handleCategorySelect = async (category) => {
     try {
       setLoading(true);
@@ -66,30 +66,37 @@ const CatalogFrontend = () => {
       // Alt kategorileri kontrol et
       if (category.subcategories && category.subcategories.length > 0) {
         setView('subcategories');
+        setLoading(false);
       } else {
         // Alt kategori yoksa doğrudan ürünleri getir
-        const response = await getItemsByCategory(category.name);
+        console.log('Alt kategori yok, ürünler getiriliyor - Kategori ID:', category._id);
+        const response = await getProductsByCategoryId(category._id);
+        console.log('Ürünler response:', response.data);
         setProducts(response.data.products || []);
         setView('category');
+        setLoading(false);
       }
-      setLoading(false);
     } catch (err) {
+      console.error('Ürünler yüklenirken hata:', err);
       setError('Ürünler yüklenirken hata oluştu');
       setLoading(false);
     }
   };
 
-  // Alt kategori seçildiğinde
+  // Alt kategori seçildiğinde (ID ile)
   const handleSubcategorySelect = async (subcategory) => {
     try {
       setLoading(true);
       setSelectedSubcategory(subcategory);
       
-      const response = await getItemsByCategory(selectedCategory.name, subcategory.name);
+      console.log('Alt kategori seçildi - Kategori ID:', selectedCategory._id, 'Alt Kategori ID:', subcategory._id);
+      const response = await getProductsByCategoryId(selectedCategory._id, subcategory._id);
+      console.log('Alt kategori ürünleri:', response.data);
       setProducts(response.data.products || []);
       setView('category');
       setLoading(false);
     } catch (err) {
+      console.error('Alt kategori ürünleri yüklenirken hata:', err);
       setError('Ürünler yüklenirken hata oluştu');
       setLoading(false);
     }
@@ -149,7 +156,7 @@ const CatalogFrontend = () => {
 
         <Grid container spacing={4}>
           {selectedCategory.subcategories.map((subcategory, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
+            <Grid item xs={12} sm={6} md={4} key={subcategory._id || index}>
               <Card 
                 sx={{ 
                   cursor: 'pointer', 

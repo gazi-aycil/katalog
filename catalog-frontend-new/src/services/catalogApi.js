@@ -24,14 +24,26 @@ API.interceptors.response.use(
   }
 );
 
-// Sadece katalog için gerekli API fonksiyonları
+// ID bazlı API fonksiyonları
 export const getCategories = () => API.get('/categories');
+export const getCategoryById = (id) => API.get(`/categories/${id}`);
 export const getItems = () => API.get('/items');
+export const getItemById = (id) => API.get(`/items/${id}`);
+
+// ID ile ürünleri getirme
+export const getProductsByCategoryId = (categoryId, subcategoryId = null) => {
+  const params = subcategoryId ? { subcategoryId } : {};
+  return API.get(`/categories/${categoryId}/products`, { params });
+};
+
+// Eski isim bazlı fonksiyonlar (geriye dönük uyumluluk için)
 export const getItemsByCategory = (categoryName, subcategoryName = null) => {
   if (subcategoryName) {
     return API.get(`/items/${categoryName}/${subcategoryName}`);
   }
   return API.get(`/items/${categoryName}`);
 };
-export const getItemById = (id) => API.get(`/items/${id}`);
+
 export const healthCheck = () => API.get('/health');
+
+export default API;
