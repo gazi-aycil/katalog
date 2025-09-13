@@ -69,7 +69,9 @@ const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
   category: { type: String, required: true },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   subcategory: String,
+  subcategoryId: { type: mongoose.Schema.Types.ObjectId },
   price: { type: Number, required: true },
   specs: [String],
   images: [String],
@@ -81,6 +83,7 @@ const Item = mongoose.model('Item', itemSchema);
 
 // Create indexes
 itemSchema.index({ category: 1, subcategory: 1 });
+itemSchema.index({ categoryId: 1, subcategoryId: 1 });
 categorySchema.index({ name: 1 });
 
 // Debug Endpoints
@@ -137,6 +140,34 @@ app.get('/api/debug/categories-with-ids', async (req, res) => {
       }))
     }));
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Debug için: Kategori ve alt kategori detaylarını getir
+app.get('/api/debug/category/:categoryId', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const category = await Category.findById(categoryId);
+    
+    if (!category) {
+      return res.status(404).json({ message: 'Kategori bulunamadı' });
+    }
+    
+    // Bu kategorideki ürünleri getir
+    const products = await Item.find({ category: category.name });
+    
+    res.json({
+      category: category,
+      productsCount: products.length,
+      productsSample: products.slice(0, 3),
+      subcategories: category.subcategories.map(sub => ({
+        _id: sub._id,
+        name: sub.name,
+        productCount: products.filter(p => p.subcategory === sub.name).length
+      }))
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -244,9 +275,9 @@ app.put('/api/items/:id',
       res.json(updatedItem);
     } catch (err) {
       res.status(400).json({ 
-      message: 'Failed to update item',
-      error: err.message 
-    });
+        message: 'Failed to update item',
+        error: err.message 
+      });
     }
   }
 );
@@ -349,20 +380,45 @@ app.get('/api/categories/:categoryId/products', async (req, res) => {
       });
     }
     
-    // Ürünleri filtrele
-    const query = { category: category.name };
+    // Ürünleri filtrele - YÖNTEM 1: categoryId ve subcategoryId ile
+    let query = { categoryId: new mongoose.Types.ObjectId(categoryId) };
     
     if (subcategoryId) {
-      // Alt kategoriyi bul
-      const subcategory = category.subcategories.id(subcategoryId);
-      if (subcategory) {
-        query.subcategory = subcategory.name;
-        console.log('Alt kategori filtresi eklendi:', query);
-      }
+      query.subcategoryId = new mongoose.Types.ObjectId(subcategoryId);
     }
-
+    
+    console.log('ID bazlı sorgu:', query);
+    
     const products = await Item.find(query).select('-__v');
-    console.log('Bulunan ürünler:', products.length);
+    console.log('Bulunan ürünler (ID bazlı):', products.length);
+    
+    // Eğer ID bazlı sorgu sonuç vermezse, eski yöntemle dene
+    if (products.length === 0) {
+      console.log('ID bazlı sorgu sonuç vermedi, isim bazlı sorgu denenecek...');
+      query = { category: category.name };
+      
+      if (subcategoryId) {
+        const subcategory = category.subcategories.id(subcategoryId);
+        if (subcategory) {
+          query.subcategory = subcategory.name;
+        }
+      }
+      
+      console.log('İsim bazlı sorgu:', query);
+      const productsByName = await Item.find(query).select('-__v');
+      console.log('İsim bazlı bulunan ürünler:', productsByName.length);
+      
+      return res.json({
+        category: {
+          _id: category._id,
+          name: category.name,
+          imageUrl: category.imageUrl
+        },
+        subcategory: subcategoryId ? category.subcategories.id(subcategoryId) : null,
+        products: productsByName,
+        queryMethod: 'name-based'
+      });
+    }
     
     res.json({
       category: {
@@ -371,12 +427,67 @@ app.get('/api/categories/:categoryId/products', async (req, res) => {
         imageUrl: category.imageUrl
       },
       subcategory: subcategoryId ? category.subcategories.id(subcategoryId) : null,
-      products: products
+      products: products,
+      queryMethod: 'id-based'
     });
   } catch (err) {
     console.error('ID ile ürün getirme hatası:', err);
     res.status(500).json({ 
       message: 'Ürünler getirilirken hata oluştu',
+      error: err.message 
+    });
+  }
+});
+
+// Veritabanındaki ürünleri güncellemek için endpoint
+app.post('/api/admin/update-product-references', async (req, res) => {
+  try {
+    console.log('Ürün referansları güncelleniyor...');
+    
+    // Tüm kategorileri al
+    const categories = await Category.find();
+    let updatedCount = 0;
+    
+    for (const category of categories) {
+      console.log(`Kategori işleniyor: ${category.name}`);
+      
+      // Kategoriye ait ürünleri güncelle
+      const categoryUpdateResult = await Item.updateMany(
+        { category: category.name },
+        { $set: { categoryId: category._id } }
+      );
+      
+      console.log(`Kategori ${category.name} için ${categoryUpdateResult.modifiedCount} ürün güncellendi`);
+      
+      // Alt kategorileri işle
+      for (const subcategory of category.subcategories) {
+        const subcategoryUpdateResult = await Item.updateMany(
+          { 
+            category: category.name,
+            subcategory: subcategory.name 
+          },
+          { $set: { 
+            categoryId: category._id,
+            subcategoryId: subcategory._id 
+          } }
+        );
+        
+        console.log(`Alt kategori ${subcategory.name} için ${subcategoryUpdateResult.modifiedCount} ürün güncellendi`);
+        updatedCount += subcategoryUpdateResult.modifiedCount;
+      }
+      
+      updatedCount += categoryUpdateResult.modifiedCount;
+    }
+    
+    res.json({
+      message: 'Ürün referansları güncellendi',
+      updatedCount: updatedCount
+    });
+    
+  } catch (err) {
+    console.error('Ürün referansları güncelleme hatası:', err);
+    res.status(500).json({ 
+      message: 'Ürün referansları güncellenirken hata oluştu',
       error: err.message 
     });
   }
@@ -567,5 +678,8 @@ app.listen(PORT, () => {
   console.log(`- http://localhost:${PORT}/api/debug/categories`);
   console.log(`- http://localhost:${PORT}/api/debug/items`);
   console.log(`- http://localhost:${PORT}/api/debug/categories-with-ids`);
+  console.log(`- http://localhost:${PORT}/api/debug/category/:categoryId`);
   console.log(`- http://localhost:${PORT}/api/categories`);
+  console.log(`\nAdmin Endpoint:`);
+  console.log(`- http://localhost:${PORT}/api/admin/update-product-references (POST)`);
 });

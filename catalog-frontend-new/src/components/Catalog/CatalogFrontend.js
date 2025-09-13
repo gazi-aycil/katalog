@@ -183,7 +183,6 @@ const CatalogFrontend = () => {
                     }
                   }}
                   onError={(e) => {
-                    // Önce kategori resmine, sonra placeholder'a dön
                     if (selectedCategory.imageUrl) {
                       e.target.src = selectedCategory.imageUrl;
                     } else {
@@ -235,7 +234,6 @@ const CatalogFrontend = () => {
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Üst Navigasyon Çubuğu */}
       <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#2c3e50' }}>
         <Toolbar>
           {view !== 'home' && (
@@ -256,18 +254,10 @@ const CatalogFrontend = () => {
              view === 'category' ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory.name) : 
              selectedProduct?.name}
           </Typography>
-          
-          {isMobile && (
-            <IconButton color="inherit">
-              <MenuIcon />
-            </IconButton>
-          )}
         </Toolbar>
       </AppBar>
 
-      {/* İçerik Alanı */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Breadcrumb (İçerik gezintisi) */}
         {view !== 'home' && (
           <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
             <Link
@@ -289,7 +279,6 @@ const CatalogFrontend = () => {
           </Breadcrumbs>
         )}
 
-        {/* İçerik Görünümleri */}
         {view === 'home' && (
           <CategoryGrid 
             categories={categories} 

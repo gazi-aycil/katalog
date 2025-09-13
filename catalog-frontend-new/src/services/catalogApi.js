@@ -36,6 +36,13 @@ export const getProductsByCategoryId = (categoryId, subcategoryId = null) => {
   return API.get(`/categories/${categoryId}/products`, { params });
 };
 
+// Debug fonksiyonları
+export const debugCategory = (categoryId) => API.get(`/debug/category/${categoryId}`);
+export const debugCategoriesWithIds = () => API.get('/debug/categories-with-ids');
+
+// Admin fonksiyonları
+export const updateProductReferences = () => API.post('/admin/update-product-references');
+
 // Eski isim bazlı fonksiyonlar (geriye dönük uyumluluk için)
 export const getItemsByCategory = (categoryName, subcategoryName = null) => {
   if (subcategoryName) {
