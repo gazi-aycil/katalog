@@ -121,7 +121,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
         </Typography>
         
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          {/* Barkod */}
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
               label="Barkod"
@@ -132,7 +133,50 @@ export default function ItemForm({ item, onSave, onCancel }) {
               size="medium"
             />
           </Grid>
-          
+
+          {/* Kategori */}
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="medium">
+              <InputLabel>Kategori</InputLabel>
+              <Select
+                value={category}
+                label="Kategori"
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                <MenuItem value="">Bir kategori seçin</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat._id} value={cat.name}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Alt Kategori */}
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="medium">
+              <InputLabel>Alt Kategori</InputLabel>
+              <Select
+                value={subcategory}
+                label="Alt Kategori"
+                onChange={(e) => setSubcategory(e.target.value)}
+                disabled={!category}
+              >
+                <MenuItem value="">
+                  {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
+                </MenuItem>
+                {subcategories.map((subcat, i) => (
+                  <MenuItem key={i} value={subcat.name}>
+                    {subcat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Ürün Adı */}
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -145,6 +189,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
             />
           </Grid>
 
+          {/* Fiyat */}
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -162,73 +207,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
             />
           </Grid>
 
-         
-        {/* Kategori Alanı (Fiyatla aynı boyutta) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth sx={{
-            '& .MuiOutlinedInput-root': {
-              height: '56px' // Kategori yüksekliği fiyatla aynı
-            }
-          }}>
-            <InputLabel>Kategori</InputLabel>
-            <Select
-              value={category}
-              label="Kategori"
-              onChange={(e) => setCategory(e.target.value)}
-              required
-              variant="outlined"
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    maxHeight: 300 // Açılır menü yüksekliği
-                  }
-                }
-              }}
-            >
-              <MenuItem value="">Bir kategori seçin</MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat.name}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        
-        {/* Alt Kategori Alanı (Fiyatla aynı boyutta) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth sx={{
-            '& .MuiOutlinedInput-root': {
-              height: '56px' // Alt kategori yüksekliği fiyatla aynı
-            }
-          }}>
-            <InputLabel>Alt Kategori</InputLabel>
-            <Select
-              value={subcategory}
-              label="Alt Kategori"
-              onChange={(e) => setSubcategory(e.target.value)}
-              disabled={!category}
-              variant="outlined"
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    maxHeight: 300 // Açılır menü yüksekliği
-                  }
-                }
-              }}
-            >
-              <MenuItem value="">
-                {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
-              </MenuItem>
-              {subcategories.map((subcat, i) => (
-                <MenuItem key={i} value={subcat.name}>
-                  {subcat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        
+          {/* Açıklama */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -243,8 +222,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Grid>
         </Grid>
       </Paper>
-        {/* Özellikler Bölümü */}
-        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+
+      {/* Özellikler Bölümü */}
+      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
           Özellikler
         </Typography>
@@ -379,8 +359,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
             : 'Maksimum 10 resim sınırına ulaşıldı'}
         </Typography>
       </Paper>
-
-    
 
       {/* Form İşlemleri */}
       <Box sx={{ 
