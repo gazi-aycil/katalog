@@ -24,19 +24,11 @@ API.interceptors.response.use(
   }
 );
 
-// Kategori fonksiyonları
+// ID bazlı API fonksiyonları
 export const getCategories = () => API.get('/categories');
 export const getCategoryById = (id) => API.get(`/categories/${id}`);
-export const createCategory = (category) => API.post('/categories', category);
-export const updateCategory = (id, category) => API.put(`/categories/${id}`, category);
-export const deleteCategory = (id) => API.delete(`/categories/${id}`);
-
-// Ürün fonksiyonları
 export const getItems = () => API.get('/items');
 export const getItemById = (id) => API.get(`/items/${id}`);
-export const createItem = (item) => API.post('/items', item);
-export const updateItem = (id, itemData) => API.put(`/items/${id}`, itemData);
-export const deleteItem = (id) => API.delete(`/items/${id}`);
 
 // ID ile ürünleri getirme
 export const getProductsByCategoryId = (categoryId, subcategoryId = null) => {
@@ -44,19 +36,21 @@ export const getProductsByCategoryId = (categoryId, subcategoryId = null) => {
   return API.get(`/categories/${categoryId}/products`, { params });
 };
 
+// Debug fonksiyonları
+export const debugCategory = (categoryId) => API.get(`/debug/category/${categoryId}`);
+export const debugCategoriesWithIds = () => API.get('/debug/categories-with-ids');
+
 // Admin fonksiyonları
 export const updateProductReferences = () => API.post('/admin/update-product-references');
 
-// Resim yükleme
-export const uploadProductImages = (formData) => {
-  return API.post('/upload-images', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+// Eski isim bazlı fonksiyonlar (geriye dönük uyumluluk için)
+export const getItemsByCategory = (categoryName, subcategoryName = null) => {
+  if (subcategoryName) {
+    return API.get(`/items/${categoryName}/${subcategoryName}`);
+  }
+  return API.get(`/items/${categoryName}`);
 };
 
-// Health check
 export const healthCheck = () => API.get('/health');
 
 export default API;
