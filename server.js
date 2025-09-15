@@ -603,7 +603,7 @@ app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
       return new Promise((resolve, reject) => {
         imagekit.upload({
           file: file.buffer,
-          fileName: `${file.barcode}`,
+          fileName: file.barcode,
           folder: '/catalog-app'
         }, (error, result) => {
           if (error) {
