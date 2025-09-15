@@ -31,7 +31,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [description, setDescription] = useState(item?.description || '');
   const [price, setPrice] = useState(item?.price || 0);
   const [category, setCategory] = useState(item?.category || '');
+  const [categoryId, setCategoryId] = useState(item?.categoryId || '');
   const [subcategory, setSubcategory] = useState(item?.subcategory || '');
+  const [subcategoryId, setSubcategoryId] = useState(item?.subcategoryId || '');
   const [specs, setSpecs] = useState(item?.specs || []);
   const [newSpec, setNewSpec] = useState('');
   const [images, setImages] = useState(item?.images || []);
@@ -54,14 +56,24 @@ export default function ItemForm({ item, onSave, onCancel }) {
 
   // Alt kategorileri güncelle
   useEffect(() => {
-    if (category) {
+    if (categoryId) {
+      const selected = categories.find(c => c._id === categoryId);
+      if (selected) {
+        setCategory(selected.name);
+        setSubcategories(selected.subcategories || []);
+      }
+    } else if (category) {
       const selected = categories.find(c => c.name === category);
-      setSubcategories(selected?.subcategories || []);
+      if (selected) {
+        setCategoryId(selected._id);
+        setSubcategories(selected.subcategories || []);
+      }
     } else {
       setSubcategories([]);
     }
     setSubcategory('');
-  }, [category, categories]);
+    setSubcategoryId('');
+  }, [category, categoryId, categories]);
 
   // Resim yükleme
   const handleImageUpload = async (e) => {
@@ -100,13 +112,22 @@ export default function ItemForm({ item, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Kategori ID kontrolü
+    if (!categoryId) {
+      alert('Lütfen geçerli bir kategori seçin');
+      return;
+    }
+
     onSave({
       barcode,
       name,
       description,
       price: Number(price),
-      category,
-      subcategory,
+      category, // Kategori ismi
+      categoryId, // Kategori ID - BU ARTIK ZORUNLU
+      subcategory, // Alt kategori ismi
+      subcategoryId, // Alt kategori ID
       specs,
       images
     });
@@ -162,72 +183,63 @@ export default function ItemForm({ item, onSave, onCancel }) {
             />
           </Grid>
 
-         
-        {/* Kategori Alanı (Fiyatla aynı boyutta) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth sx={{
-            '& .MuiOutlinedInput-root': {
-              height: '56px' // Kategori yüksekliği fiyatla aynı
-            }
-          }}>
-            <InputLabel>Kategori</InputLabel>
-            <Select
-              value={category}
-              label="Kategori"
-              onChange={(e) => setCategory(e.target.value)}
-              required
-              variant="outlined"
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    maxHeight: 300 // Açılır menü yüksekliği
+          {/* Kategori Seçimi - ID bazlı */}
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Kategori</InputLabel>
+              <Select
+                value={categoryId}
+                label="Kategori"
+                onChange={(e) => setCategoryId(e.target.value)}
+                required
+                variant="outlined"
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 300
+                    }
                   }
-                }
-              }}
-            >
-              <MenuItem value="">Bir kategori seçin</MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat.name}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        
-        {/* Alt Kategori Alanı (Fiyatla aynı boyutta) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth sx={{
-            '& .MuiOutlinedInput-root': {
-              height: '56px' // Alt kategori yüksekliği fiyatla aynı
-            }
-          }}>
-            <InputLabel>Alt Kategori</InputLabel>
-            <Select
-              value={subcategory}
-              label="Alt Kategori"
-              onChange={(e) => setSubcategory(e.target.value)}
-              disabled={!category}
-              variant="outlined"
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    maxHeight: 300 // Açılır menü yüksekliği
+                }}
+              >
+                <MenuItem value="">Bir kategori seçin</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          {/* Alt Kategori Seçimi - ID bazlı */}
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Alt Kategori</InputLabel>
+              <Select
+                value={subcategoryId}
+                label="Alt Kategori"
+                onChange={(e) => setSubcategoryId(e.target.value)}
+                disabled={!categoryId}
+                variant="outlined"
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 300
+                    }
                   }
-                }
-              }}
-            >
-              <MenuItem value="">
-                {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
-              </MenuItem>
-              {subcategories.map((subcat, i) => (
-                <MenuItem key={i} value={subcat.name}>
-                  {subcat.name}
+                }}
+              >
+                <MenuItem value="">
+                  {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+                {subcategories.map((subcat, i) => (
+                  <MenuItem key={subcat._id || i} value={subcat._id}>
+                    {subcat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
         
           <Grid item xs={12}>
             <TextField
@@ -243,8 +255,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Grid>
         </Grid>
       </Paper>
-        {/* Özellikler Bölümü */}
-        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+
+      {/* Özellikler Bölümü */}
+      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
           Özellikler
         </Typography>
@@ -379,8 +392,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
             : 'Maksimum 10 resim sınırına ulaşıldı'}
         </Typography>
       </Paper>
-
-    
 
       {/* Form İşlemleri */}
       <Box sx={{ 
