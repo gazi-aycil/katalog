@@ -16,10 +16,16 @@ import {
   CircularProgress,
   Input,
   useMediaQuery,
-  useTheme
+  useTheme,
+  ButtonGroup,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton
 } from '@mui/material';
-import { Add, Delete, CloudUpload, Close } from '@mui/icons-material';
+import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
+import ExcelImport from './ExcelImport';
 
 export default function ItemForm({ item, onSave, onCancel }) {
   const theme = useTheme();
@@ -38,6 +44,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [uploading, setUploading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [excelImportOpen, setExcelImportOpen] = useState(false);
 
   // Kategorileri yükle
   useEffect(() => {
@@ -62,6 +69,15 @@ export default function ItemForm({ item, onSave, onCancel }) {
     }
     setSubcategory('');
   }, [category, categories]);
+
+  // Excel Import dialog'ları
+  const handleOpenExcelImport = () => {
+    setExcelImportOpen(true);
+  };
+
+  const handleCloseExcelImport = () => {
+    setExcelImportOpen(false);
+  };
 
   // Resim yükleme
   const handleImageUpload = async (e) => {
@@ -113,278 +129,344 @@ export default function ItemForm({ item, onSave, onCancel }) {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 2 : 4 }}>
-      {/* Temel Bilgiler Bölümü */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Temel Bilgiler
-        </Typography>
-        
-        <Grid container spacing={3}>
-          {/* Barkod */}
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Barkod"
-              variant="outlined"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              required
-              size="medium"
-            />
-          </Grid>
-
-          {/* Kategori */}
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="medium">
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={category}
-                label="Kategori"
-                onChange={(e) => setCategory(e.target.value)}
+    <>
+      <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 2 : 4 }}>
+        {/* Temel Bilgiler Bölümü */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Temel Bilgiler
+          </Typography>
+          
+          <Grid container spacing={3}>
+            {/* Barkod */}
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Barkod"
+                variant="outlined"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
                 required
-              >
-                <MenuItem value="">Bir kategori seçin</MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat._id} value={cat.name}>
-                    {cat.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Alt Kategori */}
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="medium">
-              <InputLabel>Alt Kategori</InputLabel>
-              <Select
-                value={subcategory}
-                label="Alt Kategori"
-                onChange={(e) => setSubcategory(e.target.value)}
-                disabled={!category}
-              >
-                <MenuItem value="">
-                  {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
-                </MenuItem>
-                {subcategories.map((subcat, i) => (
-                  <MenuItem key={i} value={subcat.name}>
-                    {subcat.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Ürün Adı */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Ürün Adı"
-              variant="outlined"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              size="medium"
-            />
-          </Grid>
-
-          {/* Fiyat */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Fiyat"
-              type="number"
-              variant="outlined"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-              InputProps={{
-                endAdornment: <Typography sx={{ ml: 1 }}>₺</Typography>,
-                inputProps: { min: 0, step: 0.01 },
-              }}
-              size="medium"
-            />
-          </Grid>
-
-          {/* Açıklama */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Açıklama"
-              variant="outlined"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              multiline
-              rows={4}
-              size="medium"
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Özellikler Bölümü */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Özellikler
-        </Typography>
-        
-        <Box sx={{ mb: 3 }}>
-          {specs.map((spec, index) => (
-            <Chip
-              key={index}
-              label={spec}
-              onDelete={() => handleRemoveSpec(index)}
-              size="medium"
-              sx={{ mr: 1, mb: 1 }}
-              deleteIcon={<Delete fontSize="small" />}
-            />
-          ))}
-        </Box>
-        
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={8} md={9}>
-            <TextField
-              fullWidth
-              label="Özellik Ekle"
-              variant="outlined"
-              value={newSpec}
-              onChange={(e) => setNewSpec(e.target.value)}
-              size="medium"
-            />
-          </Grid>
-          <Grid item xs={12} sm={4} md={3}>
-            <Button
-              onClick={handleAddSpec}
-              variant="contained"
-              startIcon={<Add />}
-              disabled={!newSpec.trim()}
-              fullWidth
-              size="large"
-              sx={{ height: '56px' }}
-            >
-              Ekle
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Ürün Resimleri Bölümü */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Ürün Resimleri ({images.length}/10)
-        </Typography>
-
-        {images.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Grid container spacing={2}>
-              {images.map((img, index) => (
-                <Grid item xs={6} sm={4} md={3} key={index}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Avatar
-                      src={img}
-                      sx={{ 
-                        width: '100%', 
-                        height: 150,
-                        borderRadius: 2
-                      }}
-                      variant="rounded"
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => handleRemoveImage(index)}
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        color: 'white',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0,0,0,0.7)'
-                        }
-                      }}
-                    >
-                      <Close fontSize="small" />
-                    </IconButton>
-                    <Typography 
-                      variant="caption" 
-                      sx={{
-                        position: 'absolute',
-                        bottom: 8,
-                        left: 8,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        color: 'white',
-                        px: 1,
-                        borderRadius: 1
-                      }}
-                    >
-                      Resim {index + 1}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
+                size="medium"
+              />
             </Grid>
+
+            {/* Kategori */}
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={category}
+                  label="Kategori"
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                >
+                  <MenuItem value="">Bir kategori seçin</MenuItem>
+                  {categories.map((cat) => (
+                    <MenuItem key={cat._id} value={cat.name}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Alt Kategori */}
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Alt Kategori</InputLabel>
+                <Select
+                  value={subcategory}
+                  label="Alt Kategori"
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  disabled={!category}
+                >
+                  <MenuItem value="">
+                    {category ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
+                  </MenuItem>
+                  {subcategories.map((subcat, i) => (
+                    <MenuItem key={i} value={subcat.name}>
+                      {subcat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Ürün Adı */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Ürün Adı"
+                variant="outlined"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                size="medium"
+              />
+            </Grid>
+
+            {/* Fiyat */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Fiyat"
+                type="number"
+                variant="outlined"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+                InputProps={{
+                  endAdornment: <Typography sx={{ ml: 1 }}>₺</Typography>,
+                  inputProps: { min: 0, step: 0.01 },
+                }}
+                size="medium"
+              />
+            </Grid>
+
+            {/* Açıklama */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Açıklama"
+                variant="outlined"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                multiline
+                rows={4}
+                size="medium"
+              />
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Özellikler Bölümü */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Özellikler
+          </Typography>
+          
+          <Box sx={{ mb: 3 }}>
+            {specs.map((spec, index) => (
+              <Chip
+                key={index}
+                label={spec}
+                onDelete={() => handleRemoveSpec(index)}
+                size="medium"
+                sx={{ mr: 1, mb: 1 }}
+                deleteIcon={<Delete fontSize="small" />}
+              />
+            ))}
           </Box>
-        )}
+          
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={8} md={9}>
+              <TextField
+                fullWidth
+                label="Özellik Ekle"
+                variant="outlined"
+                value={newSpec}
+                onChange={(e) => setNewSpec(e.target.value)}
+                size="medium"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4} md={3}>
+              <Button
+                onClick={handleAddSpec}
+                variant="contained"
+                startIcon={<Add />}
+                disabled={!newSpec.trim()}
+                fullWidth
+                size="large"
+                sx={{ height: '56px' }}
+              >
+                Ekle
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
 
-        <Button
-          component="label"
-          variant="outlined"
-          startIcon={<CloudUpload />}
-          disabled={images.length >= 10 || uploading}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
-        >
-          {uploading ? (
-            <>
-              <CircularProgress size={20} sx={{ mr: 1 }} />
-              Yükleniyor...
-            </>
-          ) : (
-            'Resim Ekle'
+        {/* Ürün Resimleri Bölümü */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Ürün Resimleri ({images.length}/10)
+          </Typography>
+
+          {images.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2}>
+                {images.map((img, index) => (
+                  <Grid item xs={6} sm={4} md={3} key={index}>
+                    <Box sx={{ position: 'relative' }}>
+                      <Avatar
+                        src={img}
+                        sx={{ 
+                          width: '100%', 
+                          height: 150,
+                          borderRadius: 2
+                        }}
+                        variant="rounded"
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveImage(index)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0,0,0,0.7)'
+                          }
+                        }}
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                      <Typography 
+                        variant="caption" 
+                        sx={{
+                          position: 'absolute',
+                          bottom: 8,
+                          left: 8,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          color: 'white',
+                          px: 1,
+                          borderRadius: 1
+                        }}
+                      >
+                        Resim {index + 1}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           )}
-          <Input
-            type="file"
-            hidden
-            onChange={handleImageUpload}
-            accept="image/*"
-            multiple
-            disabled={images.length >= 10 || uploading}
-          />
-        </Button>
-        <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-          {images.length < 10 
-            ? `${10 - images.length} resim daha ekleyebilirsiniz` 
-            : 'Maksimum 10 resim sınırına ulaşıldı'}
-        </Typography>
-      </Paper>
 
-      {/* Form İşlemleri */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: 2,
-        mt: 4
-      }}>
-        <Button 
-          onClick={onCancel} 
-          variant="outlined" 
-          size="large"
-          sx={{ width: 120 }}
-        >
-          İptal
-        </Button>
-        <Button 
-          type="submit" 
-          variant="contained" 
-          color="primary"
-          size="large"
-          sx={{ width: 160 }}
-        >
-          Ürünü Kaydet
-        </Button>
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<CloudUpload />}
+            disabled={images.length >= 10 || uploading}
+            fullWidth
+            size="large"
+            sx={{ py: 2 }}
+          >
+            {uploading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Yükleniyor...
+              </>
+            ) : (
+              'Resim Ekle'
+            )}
+            <Input
+              type="file"
+              hidden
+              onChange={handleImageUpload}
+              accept="image/*"
+              multiple
+              disabled={images.length >= 10 || uploading}
+            />
+          </Button>
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            {images.length < 10 
+              ? `${10 - images.length} resim daha ekleyebilirsiniz` 
+              : 'Maksimum 10 resim sınırına ulaşıldı'}
+          </Typography>
+        </Paper>
+
+        {/* Form İşlemleri */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mt: 4,
+          p: 3,
+          bgcolor: 'grey.50',
+          borderRadius: 2,
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 2 : 0
+        }}>
+          <ButtonGroup sx={{ order: isMobile ? 2 : 1 }}>
+            <Button 
+              onClick={onCancel} 
+              variant="outlined" 
+              size="large"
+              sx={{ width: 120 }}
+            >
+              İptal
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              size="large"
+              sx={{ width: 160 }}
+            >
+              Ürünü Kaydet
+            </Button>
+          </ButtonGroup>
+
+          {/* Excel Import Butonu */}
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<ImportExport />}
+            onClick={handleOpenExcelImport}
+            size="large"
+            sx={{ 
+              order: isMobile ? 1 : 2,
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2
+              }
+            }}
+          >
+            Excel Import
+          </Button>
+        </Box>
       </Box>
-    </Box>
+
+      {/* Excel Import Dialog */}
+      <Dialog
+        open={excelImportOpen}
+        onClose={handleCloseExcelImport}
+        maxWidth="lg"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            height: '90vh',
+            maxWidth: '1200px',
+            width: '95%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          backgroundColor: 'primary.main',
+          color: 'white',
+          m: 0,
+          p: 2
+        }}>
+          <Typography variant="h6" component="div">
+            📊 Excel ile Toplu Ürün İşlemleri
+          </Typography>
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseExcelImport}
+            sx={{ color: 'white' }}
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+          <ExcelImport onBack={handleCloseExcelImport} />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
