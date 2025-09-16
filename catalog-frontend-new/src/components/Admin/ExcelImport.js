@@ -1,4 +1,3 @@
-// ExcelImport.js
 import React, { useState } from 'react';
 import {
   Box,
@@ -69,7 +68,7 @@ const ExcelImport = ({ onBack }) => {
       link.click();
       link.remove();
       
-      handleNext(); // Sonraki adıma geç
+      handleNext();
     } catch (err) {
       setError('Şablon indirilirken hata oluştu: ' + (err.message || err));
     }
@@ -108,6 +107,12 @@ const ExcelImport = ({ onBack }) => {
       return;
     }
 
+    // Dosya boyutu kontrolü (20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Dosya boyutu çok büyük. Maksimum 20MB yükleyebilirsiniz.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -118,12 +123,21 @@ const ExcelImport = ({ onBack }) => {
     try {
       const response = await importProductsExcel(formData);
       setResult(response.data);
-      setActiveStep(3); // Tamamlandı adımına geç
+      setActiveStep(3);
     } catch (err) {
-      setError('Dosya yüklenirken hata oluştu: ' + (err.message || err));
+      console.error('Upload error:', err);
+      
+      if (err.response) {
+        setError(err.response.data.message || 'Dosya yüklenirken hata oluştu');
+      } else if (err.request) {
+        setError('Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.');
+      } else {
+        setError('Beklenmeyen bir hata oluştu: ' + err.message);
+      }
+    } finally {
+      setLoading(false);
+      event.target.value = '';
     }
-    setLoading(false);
-    event.target.value = '';
   };
 
   return (

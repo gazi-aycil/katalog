@@ -1,29 +1,56 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5002/api',
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'https://katalog-2uel.onrender.com/api',
   maxContentLength: 50 * 1024 * 1024, // 50MB
   maxBodyLength: 50 * 1024 * 1024, // 50MB
+  timeout: 30000, // 30 saniye timeout
   headers: {
     'Content-Type': 'application/json',
-    // Add any auth headers if needed
-    // 'Authorization': `Bearer ${localStorage.getItem('token')}`
   }
 });
 
-// Add response interceptor to handle errors
-API.interceptors.response.use(
-  (response) => response,
+// Request interceptor
+API.interceptors.request.use(
+  (config) => {
+    console.log(`🟡 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
   (error) => {
+    console.error('🔴 API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+API.interceptors.response.use(
+  (response) => {
+    console.log(`🟢 API Response: ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error('🔴 API Response Error:', error);
+    
     if (error.response) {
-      console.error('API Error:', error.response.data);
-      return Promise.reject(error.response.data);
+      console.error('🔴 Response Data:', error.response.data);
+      console.error('🔴 Response Status:', error.response.status);
+      console.error('🔴 Response Headers:', error.response.headers);
+      
+      return Promise.reject({
+        message: error.response.data?.message || 'Sunucu hatası',
+        status: error.response.status,
+        data: error.response.data
+      });
     } else if (error.request) {
-      console.error('API Request Error:', error.request);
-      return Promise.reject({ message: 'No response received from server' });
+      console.error('🔴 No Response Received:', error.request);
+      return Promise.reject({ 
+        message: 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.' 
+      });
     } else {
-      console.error('API Setup Error:', error.message);
-      return Promise.reject({ message: 'Error setting up request' });
+      console.error('🔴 Request Setup Error:', error.message);
+      return Promise.reject({ 
+        message: 'İstek oluşturulurken hata oluştu: ' + error.message 
+      });
     }
   }
 );
@@ -61,13 +88,16 @@ export const uploadProductImages = (formData) => {
   return API.post('/upload-images', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 60000 // 60 saniye
   });
 };
+
 // Excel import/export fonksiyonları
 export const exportProductsTemplate = () => {
   return API.get('/export/products-template', {
-    responseType: 'blob'
+    responseType: 'blob',
+    timeout: 30000
   });
 };
 
@@ -75,12 +105,17 @@ export const importProductsExcel = (formData) => {
   return API.post('/import/products-excel', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 120000 // 2 dakika
   });
 };
 
 export const exportProducts = () => {
   return API.get('/export/products', {
-    responseType: 'blob'
+    responseType: 'blob',
+    timeout: 30000
   });
 };
+
+// Health check
+export const healthCheck = () => API.get('/health');

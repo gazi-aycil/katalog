@@ -8,7 +8,7 @@ const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const app = express();
-const PORT = 5002;
+const PORT = process.env.PORT || 5002;
 
 // Initialize ImageKit
 const imagekit = new ImageKit({
@@ -17,8 +17,15 @@ const imagekit = new ImageKit({
   urlEndpoint: 'https://ik.imagekit.io/4t0zibpdh/'
 });
 
+// CORS ayarlarını genişlet
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 // Middleware
-app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -41,19 +48,31 @@ const upload = multer({ storage: storage });
 // Excel dosyaları için multer konfigürasyonu
 const excelStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    // Türkçe karakterleri düzelt
+    const originalname = file.originalname.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    cb(null, Date.now() + '-' + originalname);
   }
 });
 
 const uploadExcel = multer({ 
   storage: excelStorage,
   fileFilter: function (req, file, cb) {
-    const filetypes = /xlsx|xls/;
+    const filetypes = /xlsx|xls|csv/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
+    const mimetypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream',
+      'application/vnd.ms-excel.sheet.macroEnabled.12'
+    ];
+    const mimetype = mimetypes.includes(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
@@ -62,8 +81,18 @@ const uploadExcel = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 20 * 1024 * 1024 // 20MB limit
   }
+});
+
+// Multer hata yönetimi
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Dosya boyutu çok büyük (max 20MB)' });
+    }
+  }
+  next(error);
 });
 
 // Connect to MongoDB
@@ -563,25 +592,40 @@ app.get('/api/export/products-template', async (req, res) => {
 
 // Excel Import Endpoint'i
 app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (req, res) => {
+  console.log('🔵 Excel import endpointi çağrıldı');
+  console.log('📁 Dosya bilgisi:', req.file ? {
+    filename: req.file.filename,
+    originalname: req.file.originalname,
+    size: req.file.size,
+    mimetype: req.file.mimetype
+  } : 'Dosya yok');
+
   try {
     if (!req.file) {
+      console.log('❌ Dosya yüklenmedi');
       return res.status(400).json({ message: 'Excel dosyası yüklenmedi' });
     }
 
-    console.log('Excel dosyası işleniyor:', req.file.filename);
+    console.log('✅ Dosya alındı:', req.file.filename);
 
     // Excel dosyasını oku
     const workbook = XLSX.readFile(req.file.path);
+    const worksheetNames = workbook.SheetNames;
+    console.log('📊 Worksheetler:', worksheetNames);
+
     const worksheet = workbook.Sheets['Ürün Şablonu'];
     
     if (!worksheet) {
-      fs.unlinkSync(req.file.path); // Dosyayı sil
+      console.log('❌ Ürün Şablonu worksheeti bulunamadı');
+      fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: 'Excel dosyasında "Ürün Şablonu" sayfası bulunamadı' });
     }
 
     const data = XLSX.utils.sheet_to_json(worksheet);
+    console.log('📈 Okunan veri satır sayısı:', data.length);
     
     if (data.length === 0) {
+      console.log('❌ İşlenecek veri bulunamadı');
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: 'Excel dosyasında işlenecek veri bulunamadı' });
     }
@@ -683,6 +727,8 @@ app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (r
     // Dosyayı temizle
     fs.unlinkSync(req.file.path);
 
+    console.log('✅ Import işlemi tamamlandı:', results);
+
     res.json({
       message: 'Excel import işlemi tamamlandı',
       results: results
@@ -694,10 +740,12 @@ app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (r
       fs.unlinkSync(req.file.path);
     }
 
-    console.error('Excel import hatası:', err);
+    console.error('🔥 Excel import hatası:', err);
+    console.error('🔥 Hata detayı:', err.stack);
+    
     res.status(500).json({ 
       message: 'Excel import işlemi sırasında hata oluştu',
-      error: err.message 
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
 });
