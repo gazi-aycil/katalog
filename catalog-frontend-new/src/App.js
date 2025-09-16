@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import AdminLayout from './components/Layout/AdminLayout';
-import ExcelImport from './components/ExcelImport';
+import ExcelImport from './components/Admin/ExcelImport';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminCategories from './pages/Admin/Categories';
 import Items from './pages/Admin/Items';
