@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import AdminLayout from './components/Layout/AdminLayout';
+import ExcelImport from './components/ExcelImport';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminCategories from './pages/Admin/Categories';
 import Items from './pages/Admin/Items';
@@ -84,6 +85,7 @@ function App() {
           <Route path="/" element={<CatalogHome />} />
           
           {/* Admin paneli */}
+          <Route path="/excel-import" element={<ExcelImport />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="categories" element={<AdminCategories />} />
