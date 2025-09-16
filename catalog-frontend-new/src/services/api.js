@@ -64,3 +64,23 @@ export const uploadProductImages = (formData) => {
     }
   });
 };
+// Excel import/export fonksiyonları
+export const exportProductsTemplate = () => {
+  return API.get('/export/products-template', {
+    responseType: 'blob'
+  });
+};
+
+export const importProductsExcel = (formData) => {
+  return API.post('/import/products-excel', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+export const exportProducts = () => {
+  return API.get('/export/products', {
+    responseType: 'blob'
+  });
+};
