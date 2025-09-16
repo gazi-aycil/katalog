@@ -21,7 +21,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  IconButton
+
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
