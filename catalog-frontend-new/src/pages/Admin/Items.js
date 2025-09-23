@@ -19,7 +19,8 @@ import {
   Alert,
   CircularProgress,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Chip
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import ItemForm from '../../components/Admin/ItemForm';
@@ -45,8 +46,10 @@ export default function Items() {
     setLoading(true);
     try {
       const response = await getItems();
+      console.log('Ürünler yüklendi:', response.data); // Debug için
       setItems(response.data);
     } catch (err) {
+      console.error('Ürün yükleme hatası:', err);
       setSnackbar({
         open: true,
         message: 'Ürünler yüklenirken hata oluştu',
@@ -55,6 +58,28 @@ export default function Items() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fiyat görüntüleme fonksiyonu
+  const renderPrice = (price) => {
+    if (price === 'Fiyat Alınız') {
+      return (
+        <Chip 
+          label="Fiyat Alınız" 
+          size="small" 
+          color="warning" 
+          variant="outlined"
+        />
+      );
+    }
+    
+    // Sayısal fiyat için
+    const priceValue = typeof price === 'string' ? parseFloat(price) : price;
+    if (!isNaN(priceValue)) {
+      return `₺${priceValue.toFixed(2)}`;
+    }
+    
+    return 'Geçersiz Fiyat';
   };
 
   const handleSave = async (itemData) => {
@@ -78,6 +103,7 @@ export default function Items() {
       setOpenForm(false);
       setCurrentItem(null);
     } catch (err) {
+      console.error('Kaydetme hatası:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'İşlem başarısız oldu',
@@ -96,6 +122,7 @@ export default function Items() {
       });
       fetchItems();
     } catch (err) {
+      console.error('Silme hatası:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Silme işlemi başarısız',
@@ -103,9 +130,12 @@ export default function Items() {
       });
     } finally {
       setDeleteConfirm(false);
+      setItemToDelete(null);
     }
   };
+
   const handleEdit = (item) => {
+    console.log('Düzenlenecek ürün:', item); // Debug için
     setCurrentItem(item);
     setOpenForm(true);
   };
@@ -149,45 +179,84 @@ export default function Items() {
             <TableHead>
               <TableRow>
                 <TableCell>Ürün Adı</TableCell>
+                {!isMobile && <TableCell>Barkod</TableCell>}
                 {!isMobile && <TableCell>Kategori</TableCell>}
                 <TableCell>Fiyat</TableCell>
                 <TableCell align="right">İşlemler</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {items.map((item) => (
-                <TableRow key={item._id} hover>
-                  <TableCell sx={{ maxWidth: isMobile ? 120 : 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {item.name}
-                  </TableCell>
-                  {!isMobile && <TableCell>{item.category}</TableCell>}
-                  <TableCell>₺{item.price?.toFixed(2)}</TableCell>
-                  <TableCell align="right">
-                    <IconButton 
-                      onClick={() => handleEdit(item)} 
-                      size={isMobile ? "small" : "medium"}
-                      sx={{ mr: 1 }}
-                    >
-                      <Edit fontSize={isMobile ? "small" : "medium"} />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => {
-                        setItemToDelete(item);
-                        setDeleteConfirm(true);
-                      }} 
-                      size={isMobile ? "small" : "medium"}
-                      color="error"
-                    >
-                      <Delete fontSize={isMobile ? "small" : "medium"} />
-                    </IconButton>
+              {items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isMobile ? 3 : 5} align="center">
+                    <Typography variant="body1" color="textSecondary" sx={{ py: 3 }}>
+                      Henüz hiç ürün bulunmamaktadır.
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                items.map((item) => (
+                  <TableRow key={item._id} hover>
+                    <TableCell sx={{ 
+                      maxWidth: isMobile ? 120 : 300, 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {item.name}
+                    </TableCell>
+                    {!isMobile && (
+                      <TableCell sx={{ 
+                        maxWidth: 150, 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.barcode}
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell sx={{ 
+                        maxWidth: 150, 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.category}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      {renderPrice(item.price)}
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton 
+                        onClick={() => handleEdit(item)} 
+                        size={isMobile ? "small" : "medium"}
+                        sx={{ mr: 1 }}
+                        color="primary"
+                      >
+                        <Edit fontSize={isMobile ? "small" : "medium"} />
+                      </IconButton>
+                      <IconButton 
+                        onClick={() => {
+                          setItemToDelete(item);
+                          setDeleteConfirm(true);
+                        }} 
+                        size={isMobile ? "small" : "medium"}
+                        color="error"
+                      >
+                        <Delete fontSize={isMobile ? "small" : "medium"} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
       )}
 
+      {/* Silme Onay Dialog */}
       <Dialog
         open={deleteConfirm}
         onClose={() => setDeleteConfirm(false)}
@@ -205,15 +274,35 @@ export default function Items() {
         </DialogActions>
       </Dialog>
 
+      {/* Ürün Form Dialog */}
       <Dialog 
         open={openForm} 
-        onClose={() => setOpenForm(false)} 
+        onClose={() => {
+          setOpenForm(false);
+          setCurrentItem(null);
+        }} 
         fullScreen={isMobile}
         maxWidth="md"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            margin: isMobile ? 0 : '32px',
+            width: '100%',
+            maxWidth: '1200px'
+          }
+        }}
       >
-        <DialogTitle>{currentItem ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}</DialogTitle>
-        <DialogContent dividers>
+        <DialogTitle sx={{ 
+          backgroundColor: 'primary.main',
+          color: 'white',
+          m: 0,
+          p: 2
+        }}>
+          <Typography variant="h6">
+            {currentItem ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
           <ItemForm 
             onSave={handleSave} 
             onCancel={() => {
@@ -225,6 +314,7 @@ export default function Items() {
         </DialogContent>
       </Dialog>
 
+      {/* Snackbar Bildirimleri */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
