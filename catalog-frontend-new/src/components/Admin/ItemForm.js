@@ -263,7 +263,23 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 }}
               />
             </Grid>
-
+ {/* Ürün Adı */}
+ <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Ürün Adı"
+                variant="outlined"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
+              />
+            </Grid>
             {/* Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
               <FormControl 
@@ -414,23 +430,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               </FormControl>
             </Grid>
 
-            {/* Ürün Adı */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Ürün Adı"
-                variant="outlined"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                size="medium"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
-                }}
-              />
-            </Grid>
+           
 
             {/* Fiyat ve Fiyat Alınız */}
             <Grid item xs={12} md={6}>
@@ -495,7 +495,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 onChange={(e) => setDescription(e.target.value)}
                 multiline
                 rows={4}
-                size="medium"
+                size="large"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
@@ -518,7 +518,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 key={index}
                 label={spec}
                 onDelete={() => handleRemoveSpec(index)}
-                size="medium"
+                size="large"
                 sx={{ 
                   mr: 1, 
                   mb: 1,
