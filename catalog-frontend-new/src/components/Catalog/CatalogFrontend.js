@@ -14,13 +14,11 @@ import {
   Grid,
   Card,
   CardMedia,
-  CardContent,
-  Chip
+  CardContent
 } from '@mui/material';
 import {
   Home as HomeIcon,
-  ArrowBack as ArrowBackIcon,
-  Menu as MenuIcon
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import CategoryGrid from './CategoryGrid';
 import ProductGrid from './ProductGrid';
@@ -154,49 +152,84 @@ const CatalogFrontend = () => {
           </Typography>
         </Box>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={3}>
           {selectedCategory.subcategories.map((subcategory, index) => (
-            <Grid item xs={12} sm={6} md={4} key={subcategory._id || index}>
+            <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
               <Card 
                 sx={{ 
+                  height: '350px', // Sabit yükseklik
                   cursor: 'pointer', 
                   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   borderRadius: 2,
                   overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   '&:hover': {
                     transform: 'translateY(-8px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)'
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                    borderColor: 'primary.main'
                   }
                 }}
                 onClick={() => handleSubcategorySelect(subcategory)}
               >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={subcategory.imageUrl || selectedCategory.imageUrl || '/placeholder-category.jpg'}
-                  alt={subcategory.name}
+                {/* Görsel Container - Sabit Boyut */}
+                <Box 
                   sx={{ 
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease',
-                    '&:hover': {
-                      transform: 'scale(1.05)'
-                    }
+                    height: '180px', // Sabit görsel yüksekliği
+                    overflow: 'hidden',
+                    position: 'relative'
                   }}
-                  onError={(e) => {
-                    if (selectedCategory.imageUrl) {
-                      e.target.src = selectedCategory.imageUrl;
-                    } else {
-                      e.target.src = '/placeholder-category.jpg';
-                    }
+                >
+                  <CardMedia
+                    component="img"
+                    image={subcategory.imageUrl || selectedCategory.imageUrl || '/placeholder-category.jpg'}
+                    alt={subcategory.name}
+                    sx={{ 
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transition: 'transform 0.5s ease',
+                      '&:hover': {
+                        transform: 'scale(1.1)'
+                      }
+                    }}
+                    onError={(e) => {
+                      if (selectedCategory.imageUrl) {
+                        e.target.src = selectedCategory.imageUrl;
+                      } else {
+                        e.target.src = '/placeholder-category.jpg';
+                      }
+                    }}
+                  />
+                </Box>
+                
+                {/* İçerik Alanı - Sabit Yükseklik */}
+                <CardContent 
+                  sx={{ 
+                    flexGrow: 1,
+                    p: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    textAlign: 'center'
                   }}
-                />
-                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                >
                   <Typography 
                     variant="h6" 
                     component="div" 
                     sx={{ 
                       fontWeight: 600,
-                      mb: 1
+                      mb: 1,
+                      minHeight: '64px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical'
                     }}
                   >
                     {subcategory.name}
@@ -204,6 +237,9 @@ const CatalogFrontend = () => {
                   <Typography 
                     variant="body2" 
                     color="text.secondary"
+                    sx={{
+                      mt: 'auto'
+                    }}
                   >
                     Ürünleri görüntüle
                   </Typography>
@@ -263,7 +299,13 @@ const CatalogFrontend = () => {
             <Link
               color="inherit"
               onClick={handleHome}
-              sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+              sx={{ 
+                cursor: 'pointer', 
+                textDecoration: 'none', 
+                '&:hover': { 
+                  textDecoration: 'underline' 
+                } 
+              }}
             >
               Ana Sayfa
             </Link>
