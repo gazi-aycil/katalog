@@ -289,6 +289,8 @@ app.put('/api/items/:id',
     }
 
     try {
+      console.log('Ürün güncelleniyor:', req.params.id, req.body);
+
       // Kategori doğrulama
       const category = await Category.findById(req.body.categoryId);
       if (!category) {
@@ -310,12 +312,19 @@ app.put('/api/items/:id',
       }
 
       const updateData = {
-        ...req.body,
+        barcode: req.body.barcode,
+        name: req.body.name,
+        description: req.body.description || '',
         category: category.name,
+        categoryId: req.body.categoryId,
         subcategory: subcategoryName,
+        subcategoryId: req.body.subcategoryId || null,
+        price: req.body.price,
         specs: req.body.specs || [],
         images: req.body.images || []
       };
+
+      console.log('Güncelleme verisi:', updateData);
 
       const updatedItem = await Item.findByIdAndUpdate(
         req.params.id,
@@ -329,6 +338,7 @@ app.put('/api/items/:id',
       
       res.json(updatedItem);
     } catch (err) {
+      console.error('Ürün güncelleme hatası:', err);
       res.status(400).json({ 
         message: 'Failed to update item',
         error: err.message 

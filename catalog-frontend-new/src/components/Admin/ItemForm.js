@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  IconButton,
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
@@ -30,15 +31,15 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // State'ler - YENİ: categoryId ve subcategoryId eklendi
+  // State'ler - ID bazlı seçim için güncellendi
   const [barcode, setBarcode] = useState(item?.barcode || '');
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');
   const [price, setPrice] = useState(item?.price || 0);
   const [category, setCategory] = useState(item?.category || '');
-  const [categoryId, setCategoryId] = useState(item?.categoryId || ''); // YENİ
+  const [categoryId, setCategoryId] = useState(item?.categoryId || '');
   const [subcategory, setSubcategory] = useState(item?.subcategory || '');
-  const [subcategoryId, setSubcategoryId] = useState(item?.subcategoryId || ''); // YENİ
+  const [subcategoryId, setSubcategoryId] = useState(item?.subcategoryId || '');
   const [specs, setSpecs] = useState(item?.specs || []);
   const [newSpec, setNewSpec] = useState('');
   const [images, setImages] = useState(item?.images || []);
@@ -73,6 +74,13 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setSubcategoryId(item.subcategoryId || '');
       setSpecs(item.specs || []);
       setImages(item.images || []);
+      
+      console.log('Mevcut ürün yüklendi:', {
+        category: item.category,
+        categoryId: item.categoryId,
+        subcategory: item.subcategory,
+        subcategoryId: item.subcategoryId
+      });
     }
   }, [item]);
 
@@ -83,13 +91,24 @@ export default function ItemForm({ item, onSave, onCancel }) {
       if (selectedCategory) {
         setCategory(selectedCategory.name);
         setSubcategories(selectedCategory.subcategories || []);
+        
+        // Mevcut alt kategoriyi kontrol et
+        if (item?.subcategoryId) {
+          const existingSubcategory = selectedCategory.subcategories.find(
+            sub => sub._id === item.subcategoryId
+          );
+          if (existingSubcategory) {
+            setSubcategory(existingSubcategory.name);
+            setSubcategoryId(existingSubcategory._id);
+          }
+        }
       }
     } else {
       setSubcategories([]);
+      setSubcategory('');
+      setSubcategoryId('');
     }
-    setSubcategory('');
-    setSubcategoryId('');
-  }, [categoryId, categories]);
+  }, [categoryId, categories, item]);
 
   // Excel Import dialog'ları
   const handleOpenExcelImport = () => {
@@ -104,6 +123,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const handleCategoryChange = (event) => {
     const selectedCategoryId = event.target.value;
     setCategoryId(selectedCategoryId);
+    setSubcategoryId('');
+    setSubcategory('');
     
     const selectedCategory = categories.find(c => c._id === selectedCategoryId);
     if (selectedCategory) {
@@ -174,7 +195,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
       images
     };
 
-    console.log('Gönderilen veri:', formData); // Debug için
+    // Eğer update işlemiyse, ID'yi de ekle
+    if (item && item._id) {
+      formData._id = item._id;
+    }
+
+    console.log('Gönderilen veri:', formData);
     onSave(formData);
   };
 
@@ -201,7 +227,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               />
             </Grid>
 
-            {/* Kategori - GÜNCELLENDİ: ID bazlı seçim */}
+            {/* Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
               <FormControl fullWidth size="medium">
                 <InputLabel>Kategori</InputLabel>
@@ -221,7 +247,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               </FormControl>
             </Grid>
 
-            {/* Alt Kategori - GÜNCELLENDİ: ID bazlı seçim */}
+            {/* Alt Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
               <FormControl fullWidth size="medium">
                 <InputLabel>Alt Kategori</InputLabel>
@@ -290,7 +316,142 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Grid>
         </Paper>
 
-        {/* ... (Diğer bölümler aynı kalacak) ... */}
+        {/* Özellikler Bölümü */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Özellikler
+          </Typography>
+          
+          <Box sx={{ mb: 3 }}>
+            {specs.map((spec, index) => (
+              <Chip
+                key={index}
+                label={spec}
+                onDelete={() => handleRemoveSpec(index)}
+                size="medium"
+                sx={{ mr: 1, mb: 1 }}
+                deleteIcon={<Delete fontSize="small" />}
+              />
+            ))}
+          </Box>
+          
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={8} md={9}>
+              <TextField
+                fullWidth
+                label="Özellik Ekle"
+                variant="outlined"
+                value={newSpec}
+                onChange={(e) => setNewSpec(e.target.value)}
+                size="medium"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4} md={3}>
+              <Button
+                onClick={handleAddSpec}
+                variant="contained"
+                startIcon={<Add />}
+                disabled={!newSpec.trim()}
+                fullWidth
+                size="large"
+                sx={{ height: '56px' }}
+              >
+                Ekle
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Ürün Resimleri Bölümü */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Ürün Resimleri ({images.length}/10)
+          </Typography>
+
+          {images.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2}>
+                {images.map((img, index) => (
+                  <Grid item xs={6} sm={4} md={3} key={index}>
+                    <Box sx={{ position: 'relative' }}>
+                      <Avatar
+                        src={img}
+                        sx={{ 
+                          width: '100%', 
+                          height: 150,
+                          borderRadius: 2
+                        }}
+                        variant="rounded"
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveImage(index)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0,0,0,0.7)'
+                          }
+                        }}
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                      <Typography 
+                        variant="caption" 
+                        sx={{
+                          position: 'absolute',
+                          bottom: 8,
+                          left: 8,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          color: 'white',
+                          px: 1,
+                          borderRadius: 1
+                        }}
+                      >
+                        Resim {index + 1}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<CloudUpload />}
+            disabled={images.length >= 10 || uploading}
+            fullWidth
+            size="large"
+            sx={{ py: 2 }}
+          >
+            {uploading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Yükleniyor...
+              </>
+            ) : (
+              'Resim Ekle'
+            )}
+            <Input
+              type="file"
+              hidden
+              onChange={handleImageUpload}
+              accept="image/*"
+              multiple
+              disabled={images.length >= 10 || uploading}
+            />
+          </Button>
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            {images.length < 10 
+              ? `${10 - images.length} resim daha ekleyebilirsiniz` 
+              : 'Maksimum 10 resim sınırına ulaşıldı'}
+          </Typography>
+        </Paper>
 
         {/* Form İşlemleri */}
         <Box sx={{ 
@@ -319,9 +480,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
               color="primary"
               size="large"
               sx={{ width: 160 }}
-              disabled={!categoryId} // Kategori seçilmeden gönderilemez
+              disabled={!categoryId}
             >
-              Ürünü Kaydet
+              {item ? 'Ürünü Güncelle' : 'Ürünü Kaydet'}
             </Button>
           </ButtonGroup>
 
