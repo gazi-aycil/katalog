@@ -23,6 +23,7 @@ import {
   DialogContent,
   FormControlLabel,
   Checkbox,
+  FormHelperText,
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
@@ -255,48 +256,161 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 onChange={(e) => setBarcode(e.target.value)}
                 required
                 size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
               />
             </Grid>
 
             {/* Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth size="medium">
-                <InputLabel>Kategori</InputLabel>
+              <FormControl 
+                fullWidth 
+                size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
+              >
+                <InputLabel 
+                  shrink={!!categoryId}
+                  sx={{
+                    backgroundColor: 'white',
+                    px: 1,
+                    ml: -1,
+                    transform: categoryId ? 'translate(14px, -6px) scale(0.75)' : 'translate(14px, 20px) scale(1)',
+                    '&.Mui-focused': {
+                      transform: 'translate(14px, -6px) scale(0.75)',
+                    }
+                  }}
+                >
+                  Kategori
+                </InputLabel>
                 <Select
                   value={categoryId}
                   label="Kategori"
                   onChange={handleCategoryChange}
                   required
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      return <Typography color="textSecondary">Bir kategori seçin</Typography>;
+                    }
+                    const selectedCategory = categories.find(c => c._id === selected);
+                    return selectedCategory?.name || '';
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 300,
+                        borderRadius: 2,
+                        mt: 1,
+                      }
+                    }
+                  }}
                 >
-                  <MenuItem value="">Bir kategori seçin</MenuItem>
+                  <MenuItem value="" disabled>
+                    <Typography color="textSecondary">Bir kategori seçin</Typography>
+                  </MenuItem>
                   {categories.map((cat) => (
                     <MenuItem key={cat._id} value={cat._id}>
-                      {cat.name}
+                      <Box>
+                        <Typography variant="body1" fontWeight="medium">
+                          {cat.name}
+                        </Typography>
+                        {cat.description && (
+                          <Typography variant="caption" color="textSecondary">
+                            {cat.description}
+                          </Typography>
+                        )}
+                      </Box>
                     </MenuItem>
                   ))}
                 </Select>
+                {!categoryId && (
+                  <FormHelperText>Ürün için bir kategori seçin</FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
             {/* Alt Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth size="medium">
-                <InputLabel>Alt Kategori</InputLabel>
+              <FormControl 
+                fullWidth 
+                size="medium"
+                disabled={!categoryId}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
+              >
+                <InputLabel 
+                  shrink={!!subcategoryId}
+                  sx={{
+                    backgroundColor: 'white',
+                    px: 1,
+                    ml: -1,
+                    transform: subcategoryId ? 'translate(14px, -6px) scale(0.75)' : 'translate(14px, 20px) scale(1)',
+                    '&.Mui-focused': {
+                      transform: 'translate(14px, -6px) scale(0.75)',
+                    }
+                  }}
+                >
+                  Alt Kategori
+                </InputLabel>
                 <Select
                   value={subcategoryId}
                   label="Alt Kategori"
                   onChange={handleSubcategoryChange}
-                  disabled={!categoryId}
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      return (
+                        <Typography color={categoryId ? "textSecondary" : "text.disabled"}>
+                          {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
+                        </Typography>
+                      );
+                    }
+                    const selectedSubcategory = subcategories.find(s => s._id === selected);
+                    return selectedSubcategory?.name || '';
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 300,
+                        borderRadius: 2,
+                        mt: 1,
+                      }
+                    }
+                  }}
                 >
-                  <MenuItem value="">
-                    {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
+                  <MenuItem value="" disabled>
+                    <Typography color="textSecondary">
+                      {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
+                    </Typography>
                   </MenuItem>
                   {subcategories.map((subcat) => (
                     <MenuItem key={subcat._id} value={subcat._id}>
-                      {subcat.name}
+                      <Box>
+                        <Typography variant="body1" fontWeight="medium">
+                          {subcat.name}
+                        </Typography>
+                        {subcat.description && (
+                          <Typography variant="caption" color="textSecondary">
+                            {subcat.description}
+                          </Typography>
+                        )}
+                      </Box>
                     </MenuItem>
                   ))}
                 </Select>
+                {categoryId && !subcategoryId && (
+                  <FormHelperText>İsteğe bağlı olarak bir alt kategori seçin</FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
@@ -310,6 +424,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 onChange={(e) => setName(e.target.value)}
                 required
                 size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
               />
             </Grid>
 
@@ -331,6 +450,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   }}
                   size="medium"
                   sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
                     '& .MuiInputBase-input.Mui-disabled': {
                       WebkitTextFillColor: '#d32f2f',
                       fontWeight: 'bold'
@@ -374,6 +496,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 multiline
                 rows={4}
                 size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
               />
             </Grid>
           </Grid>
@@ -392,7 +519,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 label={spec}
                 onDelete={() => handleRemoveSpec(index)}
                 size="medium"
-                sx={{ mr: 1, mb: 1 }}
+                sx={{ 
+                  mr: 1, 
+                  mb: 1,
+                  borderRadius: 1,
+                  fontWeight: 'medium'
+                }}
                 deleteIcon={<Delete fontSize="small" />}
               />
             ))}
@@ -407,6 +539,17 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 value={newSpec}
                 onChange={(e) => setNewSpec(e.target.value)}
                 size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSpec();
+                  }
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={4} md={3}>
@@ -417,7 +560,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 disabled={!newSpec.trim()}
                 fullWidth
                 size="large"
-                sx={{ height: '56px' }}
+                sx={{ 
+                  height: '56px',
+                  borderRadius: 2,
+                  fontWeight: 'bold'
+                }}
               >
                 Ekle
               </Button>
@@ -442,7 +589,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
                         sx={{ 
                           width: '100%', 
                           height: 150,
-                          borderRadius: 2
+                          borderRadius: 2,
+                          boxShadow: 2
                         }}
                         variant="rounded"
                       />
@@ -471,7 +619,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
                           backgroundColor: 'rgba(0,0,0,0.5)',
                           color: 'white',
                           px: 1,
-                          borderRadius: 1
+                          borderRadius: 1,
+                          fontSize: '0.7rem'
                         }}
                       >
                         Resim {index + 1}
@@ -490,7 +639,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
             disabled={images.length >= 10 || uploading}
             fullWidth
             size="large"
-            sx={{ py: 2 }}
+            sx={{ 
+              py: 2,
+              borderRadius: 2,
+              borderStyle: 'dashed',
+              borderWidth: 2
+            }}
           >
             {uploading ? (
               <>
@@ -509,7 +663,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
               disabled={images.length >= 10 || uploading}
             />
           </Button>
-          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary' }}>
             {images.length < 10 
               ? `${10 - images.length} resim daha ekleyebilirsiniz` 
               : 'Maksimum 10 resim sınırına ulaşıldı'}
@@ -533,7 +687,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
               onClick={onCancel} 
               variant="outlined" 
               size="large"
-              sx={{ width: 120 }}
+              sx={{ 
+                width: 120,
+                borderRadius: 2
+              }}
             >
               İptal
             </Button>
@@ -542,7 +699,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
               variant="contained" 
               color="primary"
               size="large"
-              sx={{ width: 160 }}
+              sx={{ 
+                width: 160,
+                borderRadius: 2,
+                fontWeight: 'bold'
+              }}
               disabled={!categoryId}
             >
               {item ? 'Ürünü Güncelle' : 'Ürünü Kaydet'}
@@ -559,6 +720,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
             sx={{ 
               order: isMobile ? 1 : 2,
               borderWidth: 2,
+              borderRadius: 2,
+              fontWeight: 'bold',
               '&:hover': {
                 borderWidth: 2
               }
@@ -579,7 +742,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
           '& .MuiDialog-paper': {
             height: '90vh',
             maxWidth: '1200px',
-            width: '95%'
+            width: '95%',
+            borderRadius: 2
           }
         }}
       >
@@ -590,9 +754,10 @@ export default function ItemForm({ item, onSave, onCancel }) {
           backgroundColor: 'primary.main',
           color: 'white',
           m: 0,
-          p: 2
+          p: 2,
+          borderRadius: '8px 8px 0 0'
         }}>
-          <Typography variant="h6" component="div">
+          <Typography variant="h6" component="div" fontWeight="bold">
             📊 Excel ile Toplu Ürün İşlemleri
           </Typography>
           <IconButton

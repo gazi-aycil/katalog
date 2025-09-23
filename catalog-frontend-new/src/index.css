@@ -136,3 +136,8 @@ img, svg {
 .animate {
   will-change: transform, opacity;
 }
+.card-title {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}

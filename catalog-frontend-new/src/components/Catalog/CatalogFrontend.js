@@ -138,119 +138,128 @@ const CatalogFrontend = () => {
   };
 
   // Alt Kategorileri Görüntüleme Bileşeni
-  const renderSubcategories = () => {
-    if (!selectedCategory || !selectedCategory.subcategories) return null;
+ // CatalogFrontend.js içindeki renderSubcategories fonksiyonunu bu şekilde güncelleyin:
+const renderSubcategories = () => {
+  if (!selectedCategory || !selectedCategory.subcategories) return null;
 
-    return (
-      <Box>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
-            {selectedCategory.name}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Alt kategorileri görüntüleyin
-          </Typography>
-        </Box>
+  return (
+    <Box>
+      <Box sx={{ textAlign: 'center', mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
+          {selectedCategory.name}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Alt kategorileri görüntüleyin
+        </Typography>
+      </Box>
 
-        <Grid container spacing={3}>
-          {selectedCategory.subcategories.map((subcategory, index) => (
-            <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
-              <Card 
+      <Grid container spacing={3}>
+        {selectedCategory.subcategories.map((subcategory, index) => (
+          <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
+            <Card 
+              sx={{ 
+                height: '350px', // Sabit yükseklik
+                cursor: 'pointer', 
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                borderRadius: 2,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                border: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                  borderColor: 'primary.main'
+                }
+              }}
+              onClick={() => handleSubcategorySelect(subcategory)}
+            >
+              {/* Görsel Container - Sabit Boyut */}
+              <Box 
                 sx={{ 
-                  height: '350px', // Sabit yükseklik
-                  cursor: 'pointer', 
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  borderRadius: 2,
+                  height: '180px', // Sabit görsel yüksekliği
                   overflow: 'hidden',
+                  position: 'relative',
+                  flexShrink: 0
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  image={subcategory.imageUrl || selectedCategory.imageUrl || '/placeholder-category.jpg'}
+                  alt={subcategory.name}
+                  sx={{ 
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transition: 'transform 0.5s ease',
+                    '&:hover': {
+                      transform: 'scale(1.1)'
+                    }
+                  }}
+                  onError={(e) => {
+                    if (selectedCategory.imageUrl) {
+                      e.target.src = selectedCategory.imageUrl;
+                    } else {
+                      e.target.src = '/placeholder-category.jpg';
+                    }
+                  }}
+                />
+              </Box>
+              
+              {/* İçerik Alanı - Sabit Yükseklik ve Text Wrap */}
+              <CardContent 
+                sx={{ 
+                  flex: 1,
+                  p: 3,
                   display: 'flex',
                   flexDirection: 'column',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
-                    borderColor: 'primary.main'
-                  }
+                  justifyContent: 'space-between',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  minHeight: '170px'
                 }}
-                onClick={() => handleSubcategorySelect(subcategory)}
               >
-                {/* Görsel Container - Sabit Boyut */}
-                <Box 
-                  sx={{ 
-                    height: '180px', // Sabit görsel yüksekliği
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    image={subcategory.imageUrl || selectedCategory.imageUrl || '/placeholder-category.jpg'}
-                    alt={subcategory.name}
-                    sx={{ 
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.5s ease',
-                      '&:hover': {
-                        transform: 'scale(1.1)'
-                      }
-                    }}
-                    onError={(e) => {
-                      if (selectedCategory.imageUrl) {
-                        e.target.src = selectedCategory.imageUrl;
-                      } else {
-                        e.target.src = '/placeholder-category.jpg';
-                      }
-                    }}
-                  />
-                </Box>
-                
-                {/* İçerik Alanı - Sabit Yükseklik */}
-                <CardContent 
-                  sx={{ 
-                    flexGrow: 1,
-                    p: 3,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    textAlign: 'center'
-                  }}
-                >
+                {/* Alt Kategori Adı - Text Wrap Özellikli */}
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Typography 
                     variant="h6" 
                     component="div" 
                     sx={{ 
                       fontWeight: 600,
-                      mb: 1,
-                      minHeight: '64px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
                       display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical'
+                      WebkitLineClamp: 3, // Maksimum 3 satır
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      lineHeight: 1.3,
+                      wordBreak: 'break-word',
+                      hyphens: 'auto'
                     }}
                   >
                     {subcategory.name}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      mt: 'auto'
-                    }}
-                  >
-                    Ürünleri görüntüle
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  };
+                </Box>
+                
+                {/* Açıklama - Sabit Alt Alan */}
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    mt: 2,
+                    flexShrink: 0
+                  }}
+                >
+                  Ürünleri görüntüle
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+};
 
   if (loading && view === 'home') {
     return (

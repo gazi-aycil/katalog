@@ -27,7 +27,8 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
           sx={{ 
             fontWeight: 600,
             fontSize: '0.9rem',
-            px: 1
+            px: 1,
+            whiteSpace: 'nowrap'
           }}
         />
       );
@@ -37,7 +38,7 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
     const priceValue = typeof price === 'string' ? parseFloat(price) : price;
     if (!isNaN(priceValue)) {
       return (
-        <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" color="primary" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {priceValue.toFixed(2)} ₺
         </Typography>
       );
@@ -49,6 +50,7 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
         size="small" 
         color="error" 
         variant="outlined"
+        sx={{ whiteSpace: 'nowrap' }}
       />
     );
   };
@@ -106,7 +108,8 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                   sx={{ 
                     height: '240px', // Sabit görsel yüksekliği
                     overflow: 'hidden',
-                    position: 'relative'
+                    position: 'relative',
+                    flexShrink: 0
                   }}
                 >
                   <CardMedia
@@ -116,7 +119,7 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                     sx={{ 
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover', // Görseli container'a sığdır
+                      objectFit: 'cover',
                       transition: 'transform 0.5s ease',
                       '&:hover': {
                         transform: 'scale(1.1)'
@@ -137,25 +140,29 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                       px: 1,
                       py: 0.5,
                       borderRadius: 1,
-                      fontSize: '0.75rem'
+                      fontSize: '0.75rem',
+                      maxWidth: '80%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     {product.subcategory || product.category}
                   </Box>
                 </Box>
 
-                {/* İçerik Alanı - Sabit Yükseklik */}
+                {/* İçerik Alanı - Sabit Yükseklik ve Text Wrap */}
                 <CardContent 
                   sx={{ 
-                    flexGrow: 1,
+                    flex: 1,
                     p: 3,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: '280px', // Sabit içerik yüksekliği
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    minHeight: '280px'
                   }}
                 >
-                  {/* Ürün Adı - Sabit Alan */}
+                  {/* Ürün Adı - Text Wrap Özellikli */}
                   <Typography 
                     gutterBottom 
                     variant="h6" 
@@ -163,32 +170,37 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                     sx={{ 
                       fontWeight: 600,
                       mb: 2,
-                      height: '64px', // Sabit başlık yüksekliği
-                      overflow: 'hidden',
+                      minHeight: '64px',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                       lineHeight: 1.3,
+                      wordBreak: 'break-word',
+                      hyphens: 'auto',
                       flexShrink: 0
                     }}
                   >
                     {product.name}
                   </Typography>
                   
-                  {/* Açıklama - Esnek Alan */}
+                  {/* Açıklama - Text Wrap Özellikli */}
                   <Typography 
                     variant="body2" 
                     color="text.secondary" 
                     paragraph
                     sx={{
                       mb: 2,
-                      flex: 1, // Kalan alanı doldurur
-                      overflow: 'hidden',
+                      flex: 1,
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                       lineHeight: 1.4,
-                      minHeight: '60px'
+                      wordBreak: 'break-word',
+                      hyphens: 'auto'
                     }}
                   >
                     {product.description || 'Açıklama bulunmamaktadır.'}
@@ -199,29 +211,46 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
-                    mt: 'auto',
                     flexWrap: 'wrap',
                     gap: 1,
-                    flexShrink: 0
+                    flexShrink: 0,
+                    mt: 'auto'
                   }}>
                     {renderPrice(product.price)}
                     
-                    {/* Barkod (sadece desktop'ta) */}
-                    {!isMobile && (
-                      <Typography 
-                        variant="caption" 
-                        color="text.disabled"
-                        sx={{ 
-                          maxWidth: '100px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {product.barcode}
-                      </Typography>
-                    )}
+                    {/* Kategori/Alt Kategori - Text Wrap Özellikli */}
+                    <Chip 
+                      label={product.subcategory || product.category} 
+                      size="small" 
+                      variant="outlined"
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        maxWidth: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    />
                   </Box>
+
+                  {/* Barkod bilgisi - sadece debug için */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <Typography 
+                      variant="caption" 
+                      color="text.disabled" 
+                      sx={{ 
+                        mt: 1, 
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Barkod: {product.barcode}
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
