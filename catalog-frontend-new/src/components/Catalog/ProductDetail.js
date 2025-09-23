@@ -27,6 +27,50 @@ const ProductDetail = ({ product, loading }) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
 
+  // Fiyat görüntüleme fonksiyonu
+  const renderPrice = (price) => {
+    if (price === 'Fiyat Alınız') {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Chip 
+            label="Fiyat Alınız" 
+            color="warning" 
+            variant="filled"
+            sx={{ 
+              fontWeight: 600,
+              fontSize: '1.1rem',
+              px: 2,
+              py: 1
+            }}
+          />
+        </Box>
+      );
+    }
+    
+    // Sayısal fiyat için
+    const priceValue = typeof price === 'string' ? parseFloat(price) : price;
+    if (!isNaN(priceValue)) {
+      return (
+        <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          {priceValue.toFixed(2)} ₺
+        </Typography>
+      );
+    }
+    
+    return (
+      <Chip 
+        label="Fiyat Bilgisi Yok" 
+        color="error" 
+        variant="outlined"
+        sx={{ 
+          fontWeight: 600,
+          fontSize: '1rem',
+          px: 2
+        }}
+      />
+    );
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -104,10 +148,9 @@ const ProductDetail = ({ product, loading }) => {
               {product.name}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
               <Chip 
                 label={product.category} 
-                sx={{ mr: 1 }} 
                 color="primary" 
                 variant="outlined" 
               />
@@ -123,9 +166,8 @@ const ProductDetail = ({ product, loading }) => {
               )}
             </Box>
 
-            <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-              {product.price?.toFixed(2)} ₺
-            </Typography>
+            {/* Fiyat Görüntüleme */}
+            {renderPrice(product.price)}
 
             {product.barcode && (
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -167,10 +209,11 @@ const ProductDetail = ({ product, loading }) => {
                 mt: 4,
                 px: 4,
                 py: 1.5,
-                fontSize: '1.1rem'
+                fontSize: '1.1rem',
+                fontWeight: 600
               }}
             >
-              İletişime Geçin
+              {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
             </Button>
           </Box>
         </Grid>

@@ -84,7 +84,7 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
             <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
               <Card 
                 sx={{ 
-                  height: '100%', 
+                  height: '520px', // Sabit yükseklik
                   display: 'flex', 
                   flexDirection: 'column',
                   cursor: 'pointer',
@@ -101,23 +101,61 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                 }}
                 onClick={() => onProductSelect(product._id)}
               >
-                <CardMedia
-                  component="img"
-                  height="240"
-                  image={product.images?.[0] || '/placeholder-product.jpg'}
-                  alt={product.name}
+                {/* Görsel Container - Sabit Boyut */}
+                <Box 
                   sx={{ 
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease',
-                    '&:hover': {
-                      transform: 'scale(1.05)'
-                    }
+                    height: '240px', // Sabit görsel yüksekliği
+                    overflow: 'hidden',
+                    position: 'relative'
                   }}
-                  onError={(e) => {
-                    e.target.src = '/placeholder-product.jpg';
+                >
+                  <CardMedia
+                    component="img"
+                    image={product.images?.[0] || '/placeholder-product.jpg'}
+                    alt={product.name}
+                    sx={{ 
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover', // Görseli container'a sığdır
+                      transition: 'transform 0.5s ease',
+                      '&:hover': {
+                        transform: 'scale(1.1)'
+                      }
+                    }}
+                    onError={(e) => {
+                      e.target.src = '/placeholder-product.jpg';
+                    }}
+                  />
+                  {/* Kategori Etiketi */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    {product.subcategory || product.category}
+                  </Box>
+                </Box>
+
+                {/* İçerik Alanı - Sabit Yükseklik */}
+                <CardContent 
+                  sx={{ 
+                    flexGrow: 1,
+                    p: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '280px', // Sabit içerik yüksekliği
+                    overflow: 'hidden'
                   }}
-                />
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                >
+                  {/* Ürün Adı - Sabit Alan */}
                   <Typography 
                     gutterBottom 
                     variant="h6" 
@@ -125,68 +163,65 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                     sx={{ 
                       fontWeight: 600,
                       mb: 2,
-                      minHeight: '64px',
+                      height: '64px', // Sabit başlık yüksekliği
                       overflow: 'hidden',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
-                      lineHeight: 1.3
+                      lineHeight: 1.3,
+                      flexShrink: 0
                     }}
                   >
                     {product.name}
                   </Typography>
                   
+                  {/* Açıklama - Esnek Alan */}
                   <Typography 
                     variant="body2" 
                     color="text.secondary" 
                     paragraph
                     sx={{
                       mb: 2,
-                      minHeight: '60px',
+                      flex: 1, // Kalan alanı doldurur
                       overflow: 'hidden',
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
-                      lineHeight: 1.4
+                      lineHeight: 1.4,
+                      minHeight: '60px'
                     }}
                   >
                     {product.description || 'Açıklama bulunmamaktadır.'}
                   </Typography>
                   
+                  {/* Fiyat ve Bilgiler - Sabit Alt Alan */}
                   <Box sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     mt: 'auto',
                     flexWrap: 'wrap',
-                    gap: 1
+                    gap: 1,
+                    flexShrink: 0
                   }}>
                     {renderPrice(product.price)}
-                    <Chip 
-                      label={product.subcategory || product.category} 
-                      size="small" 
-                      variant="outlined"
-                      sx={{ 
-                        fontSize: '0.7rem',
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                        maxWidth: '120px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    />
+                    
+                    {/* Barkod (sadece desktop'ta) */}
+                    {!isMobile && (
+                      <Typography 
+                        variant="caption" 
+                        color="text.disabled"
+                        sx={{ 
+                          maxWidth: '100px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {product.barcode}
+                      </Typography>
+                    )}
                   </Box>
-
-                  {/* Barkod bilgisi - sadece debug için */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <Typography 
-                      variant="caption" 
-                      color="text.disabled" 
-                      sx={{ mt: 1, display: 'block' }}
-                    >
-                      Barkod: {product.barcode}
-                    </Typography>
-                  )}
                 </CardContent>
               </Card>
             </Grid>
