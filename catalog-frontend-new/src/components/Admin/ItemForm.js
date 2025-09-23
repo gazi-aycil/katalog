@@ -21,7 +21,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  IconButton,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
@@ -36,6 +37,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');
   const [price, setPrice] = useState(item?.price || 0);
+  const [askForPrice, setAskForPrice] = useState(item?.price === 'Fiyat Alınız' || false);
   const [category, setCategory] = useState(item?.category || '');
   const [categoryId, setCategoryId] = useState(item?.categoryId || '');
   const [subcategory, setSubcategory] = useState(item?.subcategory || '');
@@ -67,7 +69,16 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setBarcode(item.barcode || '');
       setName(item.name || '');
       setDescription(item.description || '');
-      setPrice(item.price || 0);
+      
+      // Fiyat ve "Fiyat Alınız" durumunu kontrol et
+      if (item.price === 'Fiyat Alınız' || item.price === 'Fiyat Alınız') {
+        setAskForPrice(true);
+        setPrice(0);
+      } else {
+        setAskForPrice(false);
+        setPrice(item.price || 0);
+      }
+      
       setCategory(item.category || '');
       setCategoryId(item.categoryId || '');
       setSubcategory(item.subcategory || '');
@@ -76,10 +87,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setImages(item.images || []);
       
       console.log('Mevcut ürün yüklendi:', {
-        category: item.category,
-        categoryId: item.categoryId,
-        subcategory: item.subcategory,
-        subcategoryId: item.subcategoryId
+        price: item.price,
+        askForPrice: item.price === 'Fiyat Alınız'
       });
     }
   }, [item]);
@@ -109,6 +118,25 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setSubcategoryId('');
     }
   }, [categoryId, categories, item]);
+
+  // "Fiyat Alınız" checkbox'ı değiştiğinde
+  const handleAskForPriceChange = (event) => {
+    const isChecked = event.target.checked;
+    setAskForPrice(isChecked);
+    
+    if (isChecked) {
+      setPrice(0); // Fiyatı sıfırla
+    }
+  };
+
+  // Fiyat değiştiğinde
+  const handlePriceChange = (e) => {
+    const value = e.target.value;
+    // Eğer "Fiyat Alınız" seçiliyse fiyat girişini engelle
+    if (!askForPrice) {
+      setPrice(value);
+    }
+  };
 
   // Excel Import dialog'ları
   const handleOpenExcelImport = () => {
@@ -181,16 +209,19 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Fiyat değerini belirle
+    const finalPrice = askForPrice ? 'Fiyat Alınız' : Number(price);
+    
     // Backend'in beklediği veri yapısı
     const formData = {
       barcode,
       name,
       description,
-      price: Number(price),
-      category,           // kategori adı
-      categoryId,         // kategori ID - ZORUNLU
-      subcategory,        // alt kategori adı
-      subcategoryId,      // alt kategori ID
+      price: finalPrice,
+      category,
+      categoryId,
+      subcategory,
+      subcategoryId,
       specs,
       images
     };
@@ -282,22 +313,54 @@ export default function ItemForm({ item, onSave, onCancel }) {
               />
             </Grid>
 
-            {/* Fiyat */}
+            {/* Fiyat ve Fiyat Alınız */}
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Fiyat"
-                type="number"
-                variant="outlined"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                InputProps={{
-                  endAdornment: <Typography sx={{ ml: 1 }}>₺</Typography>,
-                  inputProps: { min: 0, step: 0.01 },
-                }}
-                size="medium"
-              />
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label={askForPrice ? "Fiyat Alınız" : "Fiyat"}
+                  type="number"
+                  variant="outlined"
+                  value={askForPrice ? "" : price}
+                  onChange={handlePriceChange}
+                  required={!askForPrice}
+                  disabled={askForPrice}
+                  InputProps={{
+                    endAdornment: !askForPrice ? <Typography sx={{ ml: 1 }}>₺</Typography> : null,
+                    inputProps: { min: 0, step: 0.01 },
+                  }}
+                  size="medium"
+                  sx={{
+                    '& .MuiInputBase-input.Mui-disabled': {
+                      WebkitTextFillColor: '#d32f2f',
+                      fontWeight: 'bold'
+                    }
+                  }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={askForPrice}
+                      onChange={handleAskForPriceChange}
+                      color="primary"
+                    />
+                  }
+                  label="Fiyat Alınız"
+                  sx={{ 
+                    whiteSpace: 'nowrap',
+                    mt: 1,
+                    '& .MuiFormControlLabel-label': {
+                      fontWeight: askForPrice ? 'bold' : 'normal',
+                      color: askForPrice ? '#d32f2f' : 'inherit'
+                    }
+                  }}
+                />
+              </Box>
+              {askForPrice && (
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                  Bu ürün için fiyat bilgisi "Fiyat Alınız" olarak kaydedilecektir.
+                </Typography>
+              )}
             </Grid>
 
             {/* Açıklama */}

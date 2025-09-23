@@ -129,7 +129,7 @@ const itemSchema = new mongoose.Schema({
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subcategory: String,
   subcategoryId: { type: mongoose.Schema.Types.ObjectId },
-  price: { type: Number, required: true },
+  price: { type: mongoose.Schema.Types.Mixed, required: true }, // Mixed type for both number and string
   specs: [String],
   images: [String],
 }, { timestamps: true });
@@ -198,13 +198,21 @@ app.get('/api/items/:id', async (req, res) => {
   }
 });
 
+// Özel fiyat validasyon fonksiyonu
+const validatePrice = (value) => {
+  if (value === 'Fiyat Alınız') return true;
+  if (typeof value === 'number' && value >= 0) return true;
+  if (typeof value === 'string' && !isNaN(parseFloat(value)) && parseFloat(value) >= 0) return true;
+  throw new Error('Geçerli bir fiyat girin veya "Fiyat Alınız" seçin');
+};
+
 app.post('/api/items', 
   [
     body('barcode').trim().notEmpty().withMessage("Barkod Eklemeden Kayıt yapılamaz"),
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('category').trim().notEmpty().withMessage('Category is required'),
     body('categoryId').isMongoId().withMessage('Valid category ID is required'),
-    body('price').isFloat({ min: 0 }).withMessage('Valid price is required'),
+    body('price').custom(validatePrice).withMessage('Valid price is required'),
     body('specs').optional().isArray(),
     body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
     body('images').optional().isArray(),
@@ -239,6 +247,14 @@ app.post('/api/items',
         subcategoryName = subcategory.name;
       }
 
+      // Fiyat değerini işle
+      let finalPrice;
+      if (req.body.price === 'Fiyat Alınız') {
+        finalPrice = 'Fiyat Alınız';
+      } else {
+        finalPrice = typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price;
+      }
+
       // Ürün verilerini hazırla
       const itemData = {
         barcode: req.body.barcode,
@@ -248,7 +264,7 @@ app.post('/api/items',
         categoryId: req.body.categoryId,
         subcategory: subcategoryName,
         subcategoryId: req.body.subcategoryId || null,
-        price: req.body.price,
+        price: finalPrice,
         specs: req.body.specs || [],
         images: req.body.images || []
       };
@@ -276,7 +292,7 @@ app.put('/api/items/:id',
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('category').trim().notEmpty().withMessage('Category is required'),
     body('categoryId').isMongoId().withMessage('Valid category ID is required'),
-    body('price').isFloat({ min: 0 }).withMessage('Valid price is required'),
+    body('price').custom(validatePrice).withMessage('Valid price is required'),
     body('specs').optional().isArray(),
     body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
     body('images').optional().isArray(),
@@ -311,6 +327,14 @@ app.put('/api/items/:id',
         subcategoryName = subcategory.name;
       }
 
+      // Fiyat değerini işle
+      let finalPrice;
+      if (req.body.price === 'Fiyat Alınız') {
+        finalPrice = 'Fiyat Alınız';
+      } else {
+        finalPrice = typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price;
+      }
+
       const updateData = {
         barcode: req.body.barcode,
         name: req.body.name,
@@ -319,7 +343,7 @@ app.put('/api/items/:id',
         categoryId: req.body.categoryId,
         subcategory: subcategoryName,
         subcategoryId: req.body.subcategoryId || null,
-        price: req.body.price,
+        price: finalPrice,
         specs: req.body.specs || [],
         images: req.body.images || []
       };
@@ -525,10 +549,15 @@ app.get('/api/export/products-template', async (req, res) => {
         '1234567890', 'Ürün Adı', 'Ürün Açıklaması', 'Elektronik', 'kategori_id_1',
         'Bilgisayar', 'altkategori_id_1', '1000.00', 'Özellik 1|Özellik 2', 'https://example.com/resim1.jpg|https://example.com/resim2.jpg'
       ],
+      // Fiyat Alınız örneği
+      [
+        '1234567891', 'Özel Ürün', 'Fiyat için iletişime geçin', 'Elektronik', 'kategori_id_1',
+        'Bilgisayar', 'altkategori_id_1', 'Fiyat Alınız', 'Özellik 1|Özellik 2', 'https://example.com/resim3.jpg'
+      ],
       // Açıklama satırı
       [
         'ZORUNLU', 'ZORUNLU', 'Opsiyonel', 'ZORUNLU', 'ZORUNLU (Kategori ID)',
-        'Opsiyonel', 'Opsiyonel (Alt Kategori ID)', 'ZORUNLU', 'Özellikler | ile ayrılır', 'Resim URLleri | ile ayrılır'
+        'Opsiyonel', 'Opsiyonel (Alt Kategori ID)', 'ZORUNLU (Sayı veya "Fiyat Alınız")', 'Özellikler | ile ayrılır', 'Resim URLleri | ile ayrılır'
       ]
     ];
 
@@ -568,12 +597,13 @@ app.get('/api/export/products-template', async (req, res) => {
       ['categoryId', 'Kategori ID', 'ZORUNLU', 'Metin (Kategori Referansları sayfasından alınabilir)'],
       ['subcategory', 'Alt kategori adı', 'OPSİYONEL', 'Metin'],
       ['subcategoryId', 'Alt kategori ID', 'OPSİYONEL', 'Metin (Kategori Referansları sayfasından alınabilir)'],
-      ['price', 'Ürün fiyatı', 'ZORUNLU', 'Sayı (1000.00)'],
+      ['price', 'Ürün fiyatı', 'ZORUNLU', 'Sayı (1000.00) veya "Fiyat Alınız" metni'],
       ['specs', 'Ürün özellikleri', 'OPSİYONEL', 'Özellikler | karakteri ile ayrılır'],
       ['images', 'Resim URLleri', 'OPSİYONEL', 'URLler | karakteri ile ayrılır'],
       ['', '', '', ''],
       ['ÖNEMLİ NOTLAR:', '', '', ''],
       ['- categoryId ve category alanları her ikisi de doldurulmalıdır', '', '', ''],
+      ['- price alanına sayısal değer veya "Fiyat Alınız" yazılabilir', '', '', ''],
       ['- Excel dosyasını kaydetmeden önce "Ürün Şablonu" sayfasındaki örnek satırları silin', '', '', ''],
       ['- Sadece "Ürün Şablonu" sayfasındaki veriler işlenecektir', '', '', '']
     ];
@@ -690,6 +720,24 @@ app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (r
           }
         }
 
+        // Fiyat validasyonu
+        let finalPrice;
+        if (row.price === 'Fiyat Alınız') {
+          finalPrice = 'Fiyat Alınız';
+        } else {
+          const priceValue = parseFloat(row.price);
+          if (isNaN(priceValue) || priceValue < 0) {
+            results.errors.push({
+              row: rowNumber,
+              error: 'Geçersiz fiyat değeri',
+              data: row
+            });
+            results.skipped++;
+            continue;
+          }
+          finalPrice = priceValue;
+        }
+
         // Specs'i array'e çevir
         const specsArray = row.specs ? row.specs.split('|').filter(spec => spec.trim()) : [];
 
@@ -705,7 +753,7 @@ app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (r
           categoryId: row.categoryId,
           subcategory: row.subcategory || '',
           subcategoryId: row.subcategoryId || null,
-          price: parseFloat(row.price),
+          price: finalPrice,
           specs: specsArray,
           images: imagesArray
         };
