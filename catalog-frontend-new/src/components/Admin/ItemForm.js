@@ -307,7 +307,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 </InputLabel>
                 <Select
                   value={categoryId}
-                  label="Kategori"
+                  label=""
                   onChange={handleCategoryChange}
                   required
                   displayEmpty
