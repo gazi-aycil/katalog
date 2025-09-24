@@ -71,10 +71,32 @@ const ProductDetail = ({ product, loading }) => {
     );
   };
 
+  // WhatsApp iletişim fonksiyonu
+  const handleContact = () => {
+    if (!product) return;
+    
+    const phoneNumber = "905300676769"; // Sabit numara
+    const productName = product.name || "Ürün";
+    const productPrice = product.price === 'Fiyat Alınız' ? 'Fiyat Alınız' : `${product.price} ₺`;
+    
+    const message = `Merhaba, ${productName} ürünü hakkında bilgi almak istiyorum. Ürün fiyatı: ${productPrice}`;
+    const encodedMessage = encodeURIComponent(message);
+    
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-       
+        {/* Loading indicator buraya gelebilir */}
+      </Box>
+    );
+  }
+
+  if (!product) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Typography variant="h6">Ürün bulunamadı</Typography>
       </Box>
     );
   }
@@ -212,6 +234,7 @@ const ProductDetail = ({ product, loading }) => {
                 fontSize: '1.1rem',
                 fontWeight: 600
               }}
+              onClick={handleContact}
             >
               {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
             </Button>
