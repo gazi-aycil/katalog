@@ -303,7 +303,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }
                   }}
                 >
-                  Kategori
+                  
                 </InputLabel>
                 <Select
                   value={categoryId}
@@ -376,11 +376,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }
                   }}
                 >
-                  Alt Kategori
+                  
                 </InputLabel>
                 <Select
                   value={subcategoryId}
-                  label=""
+                  label="Alt Kategori"
                   onChange={handleSubcategoryChange}
                   displayEmpty
                   renderValue={(selected) => {
