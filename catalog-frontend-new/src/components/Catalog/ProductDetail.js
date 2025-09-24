@@ -75,11 +75,11 @@ const ProductDetail = ({ product, loading }) => {
   const handleContact = () => {
     if (!product) return;
     
-    const phoneNumber = "905300676769"; // Sabit numara
+    const phoneNumber = "905551234567"; // Sabit numara
     const productName = product.name || "Ürün";
-    const productBarcode = product.barcode || "Barkod";
+    const productPrice = product.price === 'Fiyat Alınız' ? 'Fiyat Alınız' : `${product.price} ₺`;
     
-    const message = `Merhaba, ${productName} (${productBarcode})ürünü hakkında bilgi almak istiyorum.`;
+    const message = `Merhaba, ${productName} ürünü hakkında bilgi almak istiyorum. Ürün fiyatı: ${productPrice}`;
     const encodedMessage = encodeURIComponent(message);
     
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
@@ -102,71 +102,93 @@ const ProductDetail = ({ product, loading }) => {
   }
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
       {/* Ürün Detay İçeriği */}
-      <Grid container spacing={6}>
-        {/* Ürün Görselleri */}
+      <Grid container spacing={4}>
+        {/* Ürün Görselleri - Sabit solda */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ position: 'relative' }}>
-            <Box
-              component="img"
-              src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-              alt={product.name}
-              sx={{
-                width: '100%',
-                height: isMobile ? '300px' : '500px',
-                objectFit: 'cover',
-                borderRadius: 2,
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-              }}
-            />
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: 16,
-                right: 16,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                '&:hover': {
-                  backgroundColor: 'white'
-                }
-              }}
-              onClick={() => setZoomDialogOpen(true)}
-            >
-              <ZoomInIcon />
-            </IconButton>
-          </Box>
+          <Box sx={{ 
+            position: 'sticky',
+            top: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}>
+            {/* Ana Görsel */}
+            <Box sx={{ 
+              position: 'relative',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <Box
+                component="img"
+                src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
+                alt={product.name}
+                sx={{
+                  width: '100%',
+                  height: isMobile ? '300px' : '400px',
+                  objectFit: 'contain',
+                  p: 1,
+                  display: 'block'
+                }}
+              />
+              <IconButton
+                sx={{
+                  position: 'absolute',
+                  bottom: 16,
+                  right: 16,
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  '&:hover': {
+                    backgroundColor: 'white'
+                  }
+                }}
+                onClick={() => setZoomDialogOpen(true)}
+              >
+                <ZoomInIcon />
+              </IconButton>
+            </Box>
 
-          {/* Küçük Görseller */}
-          {product.images && product.images.length > 1 && (
-            <Grid container spacing={1} sx={{ mt: 2 }}>
-              {product.images.map((image, index) => (
-                <Grid item xs={3} key={index}>
-                  <Box
-                    component="img"
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    onClick={() => setSelectedImage(index)}
-                    sx={{
-                      width: '100%',
-                      height: '80px',
-                      objectFit: 'cover',
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      border: selectedImage === index ? '2px solid' : '1px solid',
-                      borderColor: selectedImage === index ? 'primary.main' : 'divider',
-                      transition: 'border-color 0.2s ease'
-                    }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          )}
+            {/* Küçük Görseller */}
+            {product.images && product.images.length > 1 && (
+              <Grid container spacing={1}>
+                {product.images.map((image, index) => (
+                  <Grid item xs={3} key={index}>
+                    <Box
+                      component="img"
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      onClick={() => setSelectedImage(index)}
+                      sx={{
+                        width: '100%',
+                        height: '80px',
+                        objectFit: 'contain',
+                        backgroundColor: '#f8f9fa',
+                        border: '1px solid',
+                        borderColor: selectedImage === index ? 'primary.main' : 'divider',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        p: 0.5,
+                        transition: 'border-color 0.2s ease'
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
         </Grid>
 
-        {/* Ürün Bilgileri */}
+        {/* Ürün Bilgileri - Sabit sağda */}
         <Grid item xs={12} md={6}>
-          <Box>
-            <Typography variant="h3" gutterBottom sx={{ fontWeight: 300, mb: 2 }}>
+          <Box sx={{ 
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               {product.name}
             </Typography>
 
@@ -197,12 +219,12 @@ const ProductDetail = ({ product, loading }) => {
               </Typography>
             )}
 
-            <Divider sx={{ my: 4 }} />
+            <Divider sx={{ my: 3 }} />
 
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" paragraph sx={{ lineHeight: 1.8, mb: 4 }}>
+            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 3 }}>
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
@@ -211,7 +233,7 @@ const ProductDetail = ({ product, loading }) => {
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
                   Teknik Özellikler
                 </Typography>
-                <List dense>
+                <List dense sx={{ mb: 3 }}>
                   {product.specs.map((spec, index) => (
                     <ListItem key={index} sx={{ px: 0 }}>
                       <ListItemText 
@@ -224,20 +246,24 @@ const ProductDetail = ({ product, loading }) => {
               </>
             )}
 
-            <Button
-              variant="contained"
-              size="large"
-              sx={{ 
-                mt: 4,
-                px: 4,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 600
-              }}
-              onClick={handleContact}
-            >
-              {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
-            </Button>
+            {/* Buton container - içeriğin altında sabit */}
+            <Box sx={{ mt: 'auto', pt: 3 }}>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth={isMobile}
+                sx={{ 
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  minWidth: isMobile ? '100%' : 'auto'
+                }}
+                onClick={handleContact}
+              >
+                {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
+              </Button>
+            </Box>
           </Box>
         </Grid>
       </Grid>
