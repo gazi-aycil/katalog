@@ -801,68 +801,132 @@ export default function ItemForm({ item, onSave, onCancel }) {
       </Box>
 
       {/* Özellik Seçim Dialog */}
-      <Dialog
-        open={showFeatureSelection}
-        onClose={() => setShowFeatureSelection(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h6" fontWeight="bold">
-            Özellik Seçimi
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Önceden tanımlanmış özelliklerden seçim yapın:
-          </Typography>
-          
-          <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
-            {availableFeatures.length > 0 ? (
-              <Grid container spacing={1}>
-                {availableFeatures.map((feature) => (
-                  <Grid item xs={12} sm={6} key={feature.id}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={selectedFeatures.some(f => f.id === feature.id)}
-                          onChange={() => handleFeatureToggle(feature)}
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight="medium">
-                            {feature.name}
-                          </Typography>
-                          {feature.description && (
-                            <Typography variant="caption" color="textSecondary">
-                              {feature.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      }
+      // Özellik Seçim Dialog kısmını güncelleyelim:
+{/* Özellik Seçim Dialog */}
+<Dialog
+  open={showFeatureSelection}
+  onClose={() => setShowFeatureSelection(false)}
+  maxWidth="lg"
+  fullWidth
+  sx={{
+    '& .MuiDialog-paper': {
+      maxHeight: '80vh'
+    }
+  }}
+>
+  <DialogTitle>
+    <Typography variant="h6" fontWeight="bold">
+      Özellik Seçimi
+    </Typography>
+  </DialogTitle>
+  <DialogContent>
+    <Tabs value={0} sx={{ mb: 2 }}>
+      <Tab label="Kullanım Alanları" />
+      <Tab label="Ürün Ölçüleri" />
+    </Tabs>
+
+    <Grid container spacing={3}>
+      {/* Kullanım Alanları */}
+      <Grid item xs={12} md={6}>
+        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+          Kullanım Alanları
+        </Typography>
+        <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          {availableFeatures.filter(f => f.type === 'usage_area').length > 0 ? (
+            availableFeatures.filter(f => f.type === 'usage_area').map((feature) => (
+              <FormControlLabel
+                key={feature.id}
+                control={
+                  <Checkbox
+                    checked={selectedFeatures.some(f => f.id === feature.id)}
+                    onChange={() => handleFeatureToggle(feature)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body1" fontWeight="medium">
+                      {feature.name}
+                    </Typography>
+                    {feature.description && (
+                      <Typography variant="caption" color="textSecondary">
+                        {feature.description}
+                      </Typography>
+                    )}
+                  </Box>
+                }
+                sx={{ width: '100%', mb: 1 }}
+              />
+            ))
+          ) : (
+            <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+              Henüz kullanım alanı eklenmemiş
+            </Typography>
+          )}
+        </Box>
+      </Grid>
+
+      {/* Ürün Ölçüleri */}
+      <Grid item xs={12} md={6}>
+        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+          Ürün Ölçüleri (Değerli Özellikler)
+        </Typography>
+        <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          {availableFeatures.filter(f => f.type === 'product_measurements').length > 0 ? (
+            availableFeatures.filter(f => f.type === 'product_measurements').map((feature) => (
+              <Box key={feature.id} sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedFeatures.some(f => f.id === feature.id)}
+                      onChange={() => handleFeatureToggle(feature)}
+                      color="secondary"
                     />
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 4 }}>
-                Henüz özellik tanımlanmamış. Özellik Ayarları menüsünden özellik ekleyin.
-              </Typography>
-            )}
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-            <Button onClick={() => setShowFeatureSelection(false)} variant="outlined">
-              İptal
-            </Button>
-            <Button onClick={applySelectedFeatures} variant="contained">
-              Seçilenleri Ekle
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
+                  }
+                  label={
+                    <Box sx={{ width: '100%' }}>
+                      <Typography variant="body1" fontWeight="medium">
+                        {feature.name}
+                      </Typography>
+                      {feature.description && (
+                        <Typography variant="caption" color="textSecondary">
+                          {feature.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  sx={{ width: '100%', mb: 1 }}
+                />
+                {selectedFeatures.some(f => f.id === feature.id) && (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder={`${feature.name} değerini girin`}
+                    sx={{ mt: 1 }}
+                    onBlur={(e) => handleMeasurementValueChange(feature.id, e.target.value)}
+                  />
+                )}
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+              Henüz ürün ölçüsü eklenmemiş
+            </Typography>
+          )}
+        </Box>
+      </Grid>
+    </Grid>
+    
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
+      <Button onClick={() => setShowFeatureSelection(false)} variant="outlined">
+        İptal
+      </Button>
+      <Button onClick={applySelectedFeatures} variant="contained">
+        Seçilenleri Ekle ({selectedFeatures.length})
+      </Button>
+    </Box>
+  </DialogContent>
+</Dialog>
 
       {/* Excel Import Dialog */}
       <Dialog
