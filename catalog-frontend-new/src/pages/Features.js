@@ -171,4 +171,27 @@ export default function Features() {
                     <IconButton
                       edge="end"
                       aria-label="delete"
-                      onClick={() => handleDelete
+                      onClick={() => handleDeleteFeature(feature.id)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+                {index < features.length - 1 && <Divider variant="inset" component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
+        )}
+      </Paper>
+
+      {/* Bilgi Notu */}
+      <Alert severity="info" sx={{ mt: 3 }}>
+        <Typography variant="body2">
+          <strong>Bilgi:</strong> Burada eklediğiniz özellikler, ürün ekleme/güncelleme 
+          formunda "Özellik Seç" butonu ile görüntülenir ve seçilebilir.
+        </Typography>
+      </Alert>
+    </Box>
+  );
+}

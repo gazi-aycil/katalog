@@ -24,7 +24,6 @@ import {
   FormControlLabel,
   Checkbox,
   FormHelperText,
-  Divider,
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
@@ -362,11 +361,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }
                   }}
                 >
-                  
+                  Kategori
                 </InputLabel>
                 <Select
                   value={categoryId}
-                  label=""
+                  label="Kategori"
                   onChange={handleCategoryChange}
                   required
                   displayEmpty
@@ -435,11 +434,11 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     }
                   }}
                 >
-                  
+                  Alt Kategori
                 </InputLabel>
                 <Select
                   value={subcategoryId}
-                  label=""
+                  label="Alt Kategori"
                   onChange={handleSubcategoryChange}
                   displayEmpty
                   renderValue={(selected) => {
@@ -579,7 +578,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 Özellik Seç
               </Button>
             )}
-          </Typography>
+          </Box>
           
           <Box sx={{ mb: 3 }}>
             {specs.map((spec, index) => (

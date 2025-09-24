@@ -9,6 +9,7 @@ import AdminCategories from './pages/Admin/Categories';
 import Items from './pages/Admin/Items';
 import CatalogHome from './pages/CatalogHome';
 import NotFound from './pages/NotFound';
+import Features from './pages/Features';
 
 // Özel tema - Şık ve elit bir tasarım için
 const theme = createTheme({
@@ -90,6 +91,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="products" element={<Items />} />
+            <Route path="features" element={<Features />} />
           </Route>
           
           {/* 404 sayfası */}
