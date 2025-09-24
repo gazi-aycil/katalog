@@ -17,7 +17,8 @@ import {
   useTheme
 } from '@mui/material';
 import {
-  ZoomIn as ZoomInIcon
+  ZoomIn as ZoomInIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 
 const ProductDetail = ({ product, loading }) => {
@@ -46,6 +47,7 @@ const ProductDetail = ({ product, loading }) => {
       );
     }
     
+    // Sayısal fiyat için
     const priceValue = typeof price === 'string' ? parseFloat(price) : price;
     if (!isNaN(priceValue)) {
       return (
@@ -73,7 +75,7 @@ const ProductDetail = ({ product, loading }) => {
   const handleContact = () => {
     if (!product) return;
     
-    const phoneNumber = "905551234567";
+    const phoneNumber = "905551234567"; // Sabit numara
     const productName = product.name || "Ürün";
     const productPrice = product.price === 'Fiyat Alınız' ? 'Fiyat Alınız' : `${product.price} ₺`;
     
@@ -86,7 +88,7 @@ const ProductDetail = ({ product, loading }) => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        {/* Loading indicator */}
+        {/* Loading indicator buraya gelebilir */}
       </Box>
     );
   }
@@ -100,22 +102,36 @@ const ProductDetail = ({ product, loading }) => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Ürün Detay İçeriği - Basit Grid */}
+    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
+      {/* Ürün Detay İçeriği */}
       <Grid container spacing={4}>
-        {/* Sol Taraf - Görseller */}
+        {/* Ürün Görselleri - Sabit solda */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ 
+            position: 'sticky',
+            top: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}>
             {/* Ana Görsel */}
-            <Box sx={{ position: 'relative', border: '1px solid #e0e0e0', borderRadius: 2, p: 2 }}>
+            <Box sx={{ 
+              position: 'relative',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+              backgroundColor: '#f8f9fa'
+            }}>
               <Box
                 component="img"
                 src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
                 alt={product.name}
                 sx={{
                   width: '100%',
-                  height: isMobile ? '250px' : '400px',
+                  height: isMobile ? '300px' : '400px',
                   objectFit: 'contain',
+                  p: 1,
                   display: 'block'
                 }}
               />
@@ -125,7 +141,9 @@ const ProductDetail = ({ product, loading }) => {
                   bottom: 16,
                   right: 16,
                   backgroundColor: 'rgba(255,255,255,0.9)',
-                  '&:hover': { backgroundColor: 'white' }
+                  '&:hover': {
+                    backgroundColor: 'white'
+                  }
                 }}
                 onClick={() => setZoomDialogOpen(true)}
               >
@@ -147,12 +165,13 @@ const ProductDetail = ({ product, loading }) => {
                         width: '100%',
                         height: '80px',
                         objectFit: 'contain',
+                        backgroundColor: '#f8f9fa',
                         border: '1px solid',
-                        borderColor: selectedImage === index ? 'primary.main' : '#e0e0e0',
+                        borderColor: selectedImage === index ? 'primary.main' : 'divider',
                         borderRadius: 1,
                         cursor: 'pointer',
                         p: 0.5,
-                        backgroundColor: '#fafafa'
+                        transition: 'border-color 0.2s ease'
                       }}
                     />
                   </Grid>
@@ -162,25 +181,36 @@ const ProductDetail = ({ product, loading }) => {
           </Box>
         </Grid>
 
-        {/* Sağ Taraf - Ürün Bilgileri */}
+        {/* Ürün Bilgileri - Sabit sağda */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ pl: isMobile ? 0 : 2 }}>
+          <Box sx={{ 
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               {product.name}
             </Typography>
 
-            <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-              <Chip label={product.category} color="primary" variant="outlined" />
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+              <Chip 
+                label={product.category} 
+                color="primary" 
+                variant="outlined" 
+              />
               {product.subcategory && (
                 <Chip 
                   label={product.subcategory} 
                   variant="outlined"
-                  sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
+                  sx={{ 
+                    borderColor: 'secondary.main',
+                    color: 'secondary.main'
+                  }}
                 />
               )}
             </Box>
 
-            {/* Fiyat */}
+            {/* Fiyat Görüntüleme */}
             {renderPrice(product.price)}
 
             {product.barcode && (
@@ -194,7 +224,7 @@ const ProductDetail = ({ product, loading }) => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" sx={{ lineHeight: 1.7, mb: 3 }}>
+            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 3 }}>
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
@@ -206,27 +236,34 @@ const ProductDetail = ({ product, loading }) => {
                 <List dense sx={{ mb: 3 }}>
                   {product.specs.map((spec, index) => (
                     <ListItem key={index} sx={{ px: 0 }}>
-                      <ListItemText primary={spec} />
+                      <ListItemText 
+                        primary={spec}
+                        primaryTypographyProps={{ variant: 'body2' }}
+                      />
                     </ListItem>
                   ))}
                 </List>
               </>
             )}
 
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleContact}
-              sx={{ 
-                mt: 2,
-                px: 4,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 600
-              }}
-            >
-              {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
-            </Button>
+            {/* Buton container - içeriğin altında sabit */}
+            <Box sx={{ mt: 'auto', pt: 3 }}>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth={isMobile}
+                sx={{ 
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  minWidth: isMobile ? '100%' : 'auto'
+                }}
+                onClick={handleContact}
+              >
+                {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
+              </Button>
+            </Box>
           </Box>
         </Grid>
       </Grid>
