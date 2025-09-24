@@ -915,172 +915,380 @@ export default function ItemForm({ item, onSave, onCancel }) {
       </Box>
 
       {/* Özellik Seçim Dialog */}
-      <Dialog
-        open={showFeatureSelection}
-        onClose={() => setShowFeatureSelection(false)}
-        maxWidth="lg"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            maxHeight: '80vh'
-          }
-        }}
+     {/* Özellik Seçim Dialog */}
+<Dialog
+  open={showFeatureSelection}
+  onClose={() => setShowFeatureSelection(false)}
+  maxWidth="xl"
+  fullWidth
+  sx={{
+    '& .MuiDialog-paper': {
+      maxHeight: '85vh',
+      borderRadius: 2
+    }
+  }}
+>
+  <DialogTitle sx={{ 
+    backgroundColor: 'primary.main',
+    color: 'white',
+    m: 0,
+    p: 3,
+    borderRadius: '8px 8px 0 0'
+  }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Typography variant="h6" component="div" fontWeight="bold">
+        🎯 Özellik Seçimi
+      </Typography>
+      <IconButton
+        aria-label="close"
+        onClick={() => setShowFeatureSelection(false)}
+        sx={{ color: 'white' }}
       >
-        <DialogTitle>
-          <Typography variant="h6" fontWeight="bold">
-            Özellik Seçimi
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Tabs value={featureTabValue} onChange={handleFeatureTabChange} sx={{ mb: 2 }}>
-            <Tab label="Kullanım Alanları" />
-            <Tab label="Ürün Ölçüleri" />
-            <Tab label="Ürün Özellikleri" />
-          </Tabs>
+        <Close />
+      </IconButton>
+    </Box>
+  </DialogTitle>
+  
+  <DialogContent sx={{ p: 3 }}>
+    {/* Bilgi Kartı */}
+    <Paper elevation={1} sx={{ p: 2, mb: 3, backgroundColor: 'info.light', color: 'info.contrastText' }}>
+      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        💡 <strong>Kullanım Kılavuzu:</strong> 
+        Kullanım Alanları ve Ürün Özellikleri checkbox ile seçilir. 
+        Ürün Ölçüleri seçildiğinde değer girişi yapılabilir.
+      </Typography>
+    </Paper>
 
-          <Grid container spacing={3}>
-            {/* Kullanım Alanları */}
-            <Grid item xs={12} md={4}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Kullanım Alanları
-              </Typography>
-              <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                {availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length > 0 ? (
-                  availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).map((feature) => (
-                    <FormControlLabel
-                      key={feature.id}
-                      control={
-                        <Checkbox
-                          checked={selectedFeatures.some(f => f.id === feature.id)}
-                          onChange={() => handleFeatureToggle(feature)}
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight="medium">
-                            {feature.name}
-                          </Typography>
-                          {feature.description && (
-                            <Typography variant="caption" color="textSecondary">
-                              {feature.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      }
-                      sx={{ width: '100%', mb: 1, display: 'block' }}
-                    />
-                  ))
-                ) : (
-                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                    Henüz kullanım alanı eklenmemiş
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-
-            {/* Ürün Ölçüleri */}
-            <Grid item xs={12} md={4}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Ürün Ölçüleri (Değerli Özellikler)
-              </Typography>
-              <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length > 0 ? (
-                  availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).map((feature) => (
-                    <Box key={feature.id} sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={selectedFeatures.some(f => f.id === feature.id)}
-                            onChange={() => handleFeatureToggle(feature)}
-                            color="secondary"
-                          />
-                        }
-                        label={
-                          <Box sx={{ width: '100%' }}>
-                            <Typography variant="body1" fontWeight="medium">
-                              {feature.name}
-                            </Typography>
-                            {feature.description && (
-                              <Typography variant="caption" color="textSecondary">
-                                {feature.description}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                        sx={{ width: '100%', mb: 1 }}
-                      />
-                      {selectedFeatures.some(f => f.id === feature.id) && (
-                        <TextField
-                          fullWidth
-                          size="small"
-                          placeholder={`${feature.name} değerini girin`}
-                          value={measurementValues[feature.id] || ''}
-                          onChange={(e) => handleMeasurementValueChange(feature.id, e.target.value)}
-                          sx={{ mt: 1 }}
-                        />
-                      )}
-                    </Box>
-                  ))
-                ) : (
-                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                    Henüz ürün ölçüsü eklenmemiş
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-
-            {/* Ürün Özellikleri */}
-            <Grid item xs={12} md={4}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Ürün Özellikleri
-              </Typography>
-              <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length > 0 ? (
-                  availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).map((feature) => (
-                    <FormControlLabel
-                      key={feature.id}
-                      control={
-                        <Checkbox
-                          checked={selectedFeatures.some(f => f.id === feature.id)}
-                          onChange={() => handleFeatureToggle(feature)}
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight="medium">
-                            {feature.name}
-                          </Typography>
-                          {feature.description && (
-                            <Typography variant="caption" color="textSecondary">
-                              {feature.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      }
-                      sx={{ width: '100%', mb: 1, display: 'block' }}
-                    />
-                  ))
-                ) : (
-                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                    Henüz ürün özelliği eklenmemiş
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-            <Button onClick={() => setShowFeatureSelection(false)} variant="outlined">
-              İptal
-            </Button>
-            <Button onClick={applySelectedFeatures} variant="contained" disabled={selectedFeatures.length === 0}>
-              Seçilenleri Ekle ({selectedFeatures.length})
-            </Button>
+    <Tabs 
+      value={featureTabValue} 
+      onChange={handleFeatureTabChange}
+      sx={{ 
+        mb: 3,
+        '& .MuiTab-root': { 
+          fontWeight: 'bold',
+          fontSize: '0.9rem'
+        }
+      }}
+      variant="fullWidth"
+    >
+      <Tab 
+        label={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>🏠 Kullanım Alanları</span>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length} 
+              size="small" 
+              color="primary"
+            />
           </Box>
-        </DialogContent>
-      </Dialog>
+        } 
+      />
+      <Tab 
+        label={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>📏 Ürün Ölçüleri</span>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length} 
+              size="small" 
+              color="secondary"
+            />
+          </Box>
+        } 
+      />
+      <Tab 
+        label={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>⚡ Ürün Özellikleri</span>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length} 
+              size="small" 
+              color="warning"
+            />
+          </Box>
+        } 
+      />
+    </Tabs>
+
+    <Grid container spacing={3}>
+      {/* Kullanım Alanları */}
+      <Grid item xs={12} md={4}>
+        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'primary.light' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" color="primary.main">
+              🏠 Kullanım Alanları
+            </Typography>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length} 
+              size="small" 
+              color="primary"
+            />
+          </Box>
+          
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Ürünün kullanılabileceği alanlar (örn: Mutfak, Banyo, Ofis)
+          </Typography>
+
+          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
+            {availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length > 0 ? (
+              availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).map((feature) => (
+                <Paper 
+                  key={feature.id} 
+                  elevation={1} 
+                  sx={{ 
+                    p: 1.5, 
+                    mb: 1, 
+                    border: 1,
+                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'primary.main' : 'grey.300',
+                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'primary.50' : 'white'
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={selectedFeatures.some(f => f.id === feature.id)}
+                        onChange={() => handleFeatureToggle(feature)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body1" fontWeight="medium">
+                          {feature.name}
+                        </Typography>
+                        {feature.description && (
+                          <Typography variant="caption" color="textSecondary">
+                            {feature.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    sx={{ width: '100%', m: 0 }}
+                  />
+                </Paper>
+              ))
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Henüz kullanım alanı eklenmemiş
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Özellik Ayarları sayfasından ekleyin
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      </Grid>
+
+      {/* Ürün Ölçüleri */}
+      <Grid item xs={12} md={4}>
+        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'secondary.light' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" color="secondary.main">
+              📏 Ürün Ölçüleri
+            </Typography>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length} 
+              size="small" 
+              color="secondary"
+            />
+          </Box>
+          
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Ölçülebilir değerler (seçildiğinde değer girişi yapılır)
+          </Typography>
+
+          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
+            {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length > 0 ? (
+              availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).map((feature) => (
+                <Paper 
+                  key={feature.id} 
+                  elevation={1} 
+                  sx={{ 
+                    p: 1.5, 
+                    mb: 1, 
+                    border: 1,
+                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'secondary.main' : 'grey.300',
+                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'secondary.50' : 'white'
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={selectedFeatures.some(f => f.id === feature.id)}
+                        onChange={() => handleFeatureToggle(feature)}
+                        color="secondary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body1" fontWeight="medium">
+                          {feature.name}
+                        </Typography>
+                        {feature.description && (
+                          <Typography variant="caption" color="textSecondary">
+                            {feature.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    sx={{ width: '100%', m: 0, mb: 1 }}
+                  />
+                  
+                  {selectedFeatures.some(f => f.id === feature.id) && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder={`${feature.name} değerini girin (örn: 120cm, 15kg)`}
+                      value={measurementValues[feature.id] || ''}
+                      onChange={(e) => handleMeasurementValueChange(feature.id, e.target.value)}
+                      sx={{ mt: 1 }}
+                      InputProps={{
+                        startAdornment: <Typography variant="caption" sx={{ mr: 1 }}>📝</Typography>
+                      }}
+                    />
+                  )}
+                </Paper>
+              ))
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Henüz ürün ölçüsü eklenmemiş
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Özellik Ayarları sayfasından ekleyin
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      </Grid>
+
+      {/* Ürün Özellikleri */}
+      <Grid item xs={12} md={4}>
+        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'warning.light' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" color="warning.main">
+              ⚡ Ürün Özellikleri
+            </Typography>
+            <Chip 
+              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length} 
+              size="small" 
+              color="warning"
+            />
+          </Box>
+          
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Ürünün teknik ve fiziksel özellikleri
+          </Typography>
+
+          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
+            {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length > 0 ? (
+              availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).map((feature) => (
+                <Paper 
+                  key={feature.id} 
+                  elevation={1} 
+                  sx={{ 
+                    p: 1.5, 
+                    mb: 1, 
+                    border: 1,
+                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'warning.main' : 'grey.300',
+                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'warning.50' : 'white'
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={selectedFeatures.some(f => f.id === feature.id)}
+                        onChange={() => handleFeatureToggle(feature)}
+                        color="warning"
+                      />
+                    }
+                    label={
+                      <Box sx={{ width: '100%' }}>
+                        <Typography variant="body1" fontWeight="medium">
+                          {feature.name}
+                        </Typography>
+                        {feature.description && (
+                          <Typography variant="caption" color="textSecondary">
+                            {feature.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    sx={{ width: '100%', m: 0 }}
+                  />
+                </Paper>
+              ))
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Henüz ürün özelliği eklenmemiş
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Özellik Ayarları sayfasından ekleyin
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      </Grid>
+    </Grid>
+
+    {/* Seçili Özellikler Özeti */}
+    {selectedFeatures.length > 0 && (
+      <Paper elevation={2} sx={{ p: 2, mt: 3, backgroundColor: 'success.50', border: 1, borderColor: 'success.light' }}>
+        <Typography variant="subtitle1" fontWeight="bold" color="success.main" sx={{ mb: 1 }}>
+          ✅ Seçili Özellikler ({selectedFeatures.length})
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {selectedFeatures.map((feature) => (
+            <Chip
+              key={feature.id}
+              label={
+                feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS && measurementValues[feature.id]
+                  ? `${feature.name}: ${measurementValues[feature.id]}`
+                  : feature.name
+              }
+              size="small"
+              color={
+                feature.type === FEATURE_TYPES.USAGE_AREA ? 'primary' :
+                feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS ? 'secondary' : 'warning'
+              }
+              variant="outlined"
+            />
+          ))}
+        </Box>
+      </Paper>
+    )}
+    
+    {/* Action Butonları */}
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+      <Typography variant="body2" color="textSecondary">
+        Toplam {availableFeatures.length} özellik mevcut
+      </Typography>
+      
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <Button 
+          onClick={() => setShowFeatureSelection(false)} 
+          variant="outlined"
+          size="large"
+        >
+          İptal
+        </Button>
+        <Button 
+          onClick={applySelectedFeatures} 
+          variant="contained" 
+          size="large"
+          disabled={selectedFeatures.length === 0}
+          sx={{ minWidth: 200 }}
+        >
+          🎯 Seçilenleri Ekle ({selectedFeatures.length})
+        </Button>
+      </Box>
+    </Box>
+  </DialogContent>
+</Dialog>
 
       {/* Excel Import Dialog */}
       <Dialog
