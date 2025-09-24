@@ -32,6 +32,12 @@ export default function AdminLayout() {
                 <ListItemText primary="Ürünler" />
               </ListItemButton>
             </ListItem>
+            {/* Yeni Özellik Ayarları Menüsü */}
+            <ListItem disablePadding>
+              <ListItemButton component={Link} to="/admin/features">
+                <ListItemText primary="Özellik Ayarları" />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Box>
       </Drawer>

@@ -24,10 +24,14 @@ import {
   FormControlLabel,
   Checkbox,
   FormHelperText,
+  Divider,
 } from '@mui/material';
 import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
 import { getCategories, uploadProductImages } from '../../services/api';
 import ExcelImport from './ExcelImport';
+
+// Özellik ayarları için localStorage key
+const FEATURES_STORAGE_KEY = 'product_features';
 
 export default function ItemForm({ item, onSave, onCancel }) {
   const theme = useTheme();
@@ -50,6 +54,36 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [excelImportOpen, setExcelImportOpen] = useState(false);
+  
+  // Özellik ayarları state'leri
+  const [availableFeatures, setAvailableFeatures] = useState([]);
+  const [selectedFeatures, setSelectedFeatures] = useState([]);
+  const [showFeatureSelection, setShowFeatureSelection] = useState(false);
+
+  // Kayıtlı özellikleri localStorage'dan yükle
+  useEffect(() => {
+    const loadFeatures = () => {
+      try {
+        const savedFeatures = localStorage.getItem(FEATURES_STORAGE_KEY);
+        if (savedFeatures) {
+          const features = JSON.parse(savedFeatures);
+          setAvailableFeatures(features);
+          
+          // Mevcut ürünün özelliklerini seçili hale getir
+          if (item?.specs && item.specs.length > 0) {
+            const selected = features.filter(feature => 
+              item.specs.includes(feature.name)
+            );
+            setSelectedFeatures(selected);
+          }
+        }
+      } catch (error) {
+        console.error('Özellikler yüklenirken hata:', error);
+      }
+    };
+    
+    loadFeatures();
+  }, [item]);
 
   // Kategorileri yükle
   useEffect(() => {
@@ -119,6 +153,29 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setSubcategoryId('');
     }
   }, [categoryId, categories, item]);
+
+  // Özellik seçimini toggle et
+  const handleFeatureToggle = (feature) => {
+    setSelectedFeatures(prev => {
+      const isSelected = prev.find(f => f.id === feature.id);
+      if (isSelected) {
+        return prev.filter(f => f.id !== feature.id);
+      } else {
+        return [...prev, feature];
+      }
+    });
+  };
+
+  // Seçilen özellikleri specs'e ekle
+  const applySelectedFeatures = () => {
+    const featureNames = selectedFeatures.map(f => f.name);
+    setSpecs(prev => {
+      // Mevcut özellikleri koru, sadece çakışmaları önle
+      const existingSpecs = prev.filter(spec => !featureNames.includes(spec));
+      return [...existingSpecs, ...featureNames];
+    });
+    setShowFeatureSelection(false);
+  };
 
   // "Fiyat Alınız" checkbox'ı değiştiğinde
   const handleAskForPriceChange = (event) => {
@@ -263,8 +320,9 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 }}
               />
             </Grid>
- {/* Ürün Adı */}
- <Grid item xs={12} md={6}>
+
+            {/* Ürün Adı */}
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Ürün Adı"
@@ -280,6 +338,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 }}
               />
             </Grid>
+
             {/* Kategori - ID bazlı seçim */}
             <Grid item xs={12} md={4}>
               <FormControl 
@@ -430,8 +489,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
               </FormControl>
             </Grid>
 
-           
-
             {/* Fiyat ve Fiyat Alınız */}
             <Grid item xs={12} md={6}>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
@@ -508,8 +565,20 @@ export default function ItemForm({ item, onSave, onCancel }) {
 
         {/* Özellikler Bölümü */}
         <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-            Özellikler
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Özellikler
+            </Typography>
+            
+            {availableFeatures.length > 0 && (
+              <Button
+                variant="outlined"
+                onClick={() => setShowFeatureSelection(true)}
+                sx={{ borderRadius: 2 }}
+              >
+                Özellik Seç
+              </Button>
+            )}
           </Typography>
           
           <Box sx={{ mb: 3 }}>
@@ -731,6 +800,70 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Button>
         </Box>
       </Box>
+
+      {/* Özellik Seçim Dialog */}
+      <Dialog
+        open={showFeatureSelection}
+        onClose={() => setShowFeatureSelection(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="bold">
+            Özellik Seçimi
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Önceden tanımlanmış özelliklerden seçim yapın:
+          </Typography>
+          
+          <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+            {availableFeatures.length > 0 ? (
+              <Grid container spacing={1}>
+                {availableFeatures.map((feature) => (
+                  <Grid item xs={12} sm={6} key={feature.id}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedFeatures.some(f => f.id === feature.id)}
+                          onChange={() => handleFeatureToggle(feature)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {feature.name}
+                          </Typography>
+                          {feature.description && (
+                            <Typography variant="caption" color="textSecondary">
+                              {feature.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 4 }}>
+                Henüz özellik tanımlanmamış. Özellik Ayarları menüsünden özellik ekleyin.
+              </Typography>
+            )}
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
+            <Button onClick={() => setShowFeatureSelection(false)} variant="outlined">
+              İptal
+            </Button>
+            <Button onClick={applySelectedFeatures} variant="contained">
+              Seçilenleri Ekle
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
 
       {/* Excel Import Dialog */}
       <Dialog
