@@ -37,7 +37,8 @@ const FEATURES_STORAGE_KEY = 'product_features';
 // Özellik türleri
 const FEATURE_TYPES = {
   USAGE_AREA: 'usage_area',
-  PRODUCT_MEASUREMENTS: 'product_measurements'
+  PRODUCT_MEASUREMENTS: 'product_measurements',
+  PRODUCT_PROPERTIES: 'product_properties'
 };
 
 // Özellikleri localStorage'dan yükleyen fonksiyon
@@ -180,10 +181,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
           values[feature.id] = valuePart;
         }
       } else {
-        // Normal özellikleri kontrol et (örn: "Mutfak")
-        const feature = features.find(f => 
-          f.name === spec && f.type === FEATURE_TYPES.USAGE_AREA
-        );
+        // Normal özellikleri kontrol et
+        const feature = features.find(f => f.name === spec);
         if (feature) {
           selected.push(feature);
         }
@@ -936,11 +935,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
           <Tabs value={featureTabValue} onChange={handleFeatureTabChange} sx={{ mb: 2 }}>
             <Tab label="Kullanım Alanları" />
             <Tab label="Ürün Ölçüleri" />
+            <Tab label="Ürün Özellikleri" />
           </Tabs>
 
           <Grid container spacing={3}>
             {/* Kullanım Alanları */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Kullanım Alanları
               </Typography>
@@ -980,7 +980,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
             </Grid>
 
             {/* Ürün Ölçüleri */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Ürün Ölçüleri (Değerli Özellikler)
               </Typography>
@@ -1025,6 +1025,46 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 ) : (
                   <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
                     Henüz ürün ölçüsü eklenmemiş
+                  </Typography>
+                )}
+              </Box>
+            </Grid>
+
+            {/* Ürün Özellikleri */}
+            <Grid item xs={12} md={4}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Ürün Özellikleri
+              </Typography>
+              <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length > 0 ? (
+                  availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).map((feature) => (
+                    <FormControlLabel
+                      key={feature.id}
+                      control={
+                        <Checkbox
+                          checked={selectedFeatures.some(f => f.id === feature.id)}
+                          onChange={() => handleFeatureToggle(feature)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {feature.name}
+                          </Typography>
+                          {feature.description && (
+                            <Typography variant="caption" color="textSecondary">
+                              {feature.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                      sx={{ width: '100%', mb: 1, display: 'block' }}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                    Henüz ürün özelliği eklenmemiş
                   </Typography>
                 )}
               </Box>
