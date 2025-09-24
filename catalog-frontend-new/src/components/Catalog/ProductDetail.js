@@ -77,9 +77,9 @@ const ProductDetail = ({ product, loading }) => {
     
     const phoneNumber = "905300676769"; // Sabit numara
     const productName = product.name || "Ürün";
-    const productPrice = product.price === 'Fiyat Alınız' ? 'Fiyat Alınız' : `${product.price} ₺`;
+    const productBarcode = product.barcode || "Barkod";
     
-    const message = `Merhaba, ${productName} ürünü hakkında bilgi almak istiyorum. Ürün fiyatı: ${productPrice}`;
+    const message = `Merhaba, ${productName} (${productBarcode})ürünü hakkında bilgi almak istiyorum.`;
     const encodedMessage = encodeURIComponent(message);
     
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
