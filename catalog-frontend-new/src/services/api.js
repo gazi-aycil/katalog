@@ -75,6 +75,22 @@ export const deleteItem = (id) => API.delete(`/items/${id}`);
 export const getItemsByCategory = (categoryId) => API.get(`/categories/${categoryId}/products`);
 
 // RESİM YÜKLEME FONKSİYONLARI
+export const uploadImages = (formData) => {
+  return API.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+export const uploadImage = (formData) => {
+  return API.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
 export const uploadProductImages = (formData) => {
   return API.post('/upload-images', formData, {
     headers: {

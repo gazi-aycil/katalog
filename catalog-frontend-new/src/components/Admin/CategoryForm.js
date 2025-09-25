@@ -151,24 +151,17 @@ export default function CategoryForm({ category, onSave, onCancel }) {
     });
   };
 
-// CategoryForm.js içinde handleSubmit fonksiyonunu güncelle
-const handleSubmit = (e) => {
-  e.preventDefault();
-  
-  // ParentId kontrolü - boş string ise null yap
-  const submitData = {
-    ...formData,
-    parentId: formData.parentId || null // Boş string ise null yap
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Parent kategori validasyonu (kendini seçemez)
+    if (category && formData.parentId === category._id) {
+      alert('Kategori kendisinin üst kategorisi olamaz');
+      return;
+    }
+
+    onSave(formData);
   };
-
-  // Kendini parent yapma kontrolü
-  if (category && submitData.parentId === category._id) {
-    alert('Kategori kendisinin üst kategorisi olamaz');
-    return;
-  }
-
-  onSave(submitData);
-};
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 1 : 3 }}>
