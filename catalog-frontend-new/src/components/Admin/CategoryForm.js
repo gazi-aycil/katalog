@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
   Button,
@@ -12,31 +12,52 @@ import {
   Grid,
   CircularProgress,
   useMediaQuery,
-  useTheme
+  useTheme,
+  MenuItem,
+  Select,
+  FormHelperText
 } from '@mui/material';
-import { Add, Delete, CloudUpload } from '@mui/icons-material';
-import { uploadProductImages } from '../../services/api';
+import { Add, Delete, CloudUpload, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { uploadProductImages, getCategories } from '../../services/api';
 
 export default function CategoryForm({ category, onSave, onCancel }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const [name, setName] = useState(category?.name || '');
-  const [subcategories, setSubcategories] = useState(
-    category?.subcategories?.map(sc => ({ 
-      name: sc.name, 
-      imageUrl: sc.imageUrl || '' 
-    })) || []
-  );
-  const [newSubcategory, setNewSubcategory] = useState('');
-  const [newSubcategoryImage, setNewSubcategoryImage] = useState(null);
-  const [categoryImage, setCategoryImage] = useState(category?.imageUrl || '');
+  const [formData, setFormData] = useState({
+    name: category?.name || '',
+    description: category?.description || '',
+    parentId: category?.parentId || '',
+    imageUrl: category?.imageUrl || '',
+    sortOrder: category?.sortOrder || 0
+  });
+  
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
 
-  const handleImageUpload = async (e, setImage) => {
+  // Kategorileri yükle
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await getCategories('/api/categories/tree');
+      setCategories(response.data || []);
+    } catch (err) {
+      console.error('Kategoriler yüklenirken hata:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     try {
       setUploading(true);
       const formData = new FormData();
@@ -44,7 +65,7 @@ export default function CategoryForm({ category, onSave, onCancel }) {
       
       const response = await uploadProductImages(formData);
       if (response.data.imageUrls && response.data.imageUrls.length > 0) {
-        setImage(response.data.imageUrls[0]);
+        setFormData(prev => ({ ...prev, imageUrl: response.data.imageUrls[0] }));
       }
     } catch (err) {
       console.error('Resim yükleme hatası:', err);
@@ -54,30 +75,98 @@ export default function CategoryForm({ category, onSave, onCancel }) {
     }
   };
 
-  const handleAddSubcategory = () => {
-    if (newSubcategory.trim()) {
-      setSubcategories([...subcategories, {
-        name: newSubcategory.trim(),
-        imageUrl: newSubcategoryImage || ''
-      }]);
-      setNewSubcategory('');
-      setNewSubcategoryImage(null);
-    }
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleCategoryExpand = (categoryId) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Özyinelemeli kategori render fonksiyonu
+  const renderCategoryTree = (categoryList, level = 0) => {
+    return categoryList.map(cat => {
+      const hasChildren = cat.subcategories && cat.subcategories.length > 0;
+      const isExpanded = expandedCategories.has(cat._id);
+      const isCurrentCategory = category && category._id === cat._id;
+      
+      return (
+        <Box key={cat._id} sx={{ ml: level * 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            py: 0.5,
+            backgroundColor: isCurrentCategory ? 'action.hover' : 'transparent'
+          }}>
+            {hasChildren && (
+              <IconButton 
+                size="small" 
+                onClick={() => toggleCategoryExpand(cat._id)}
+                sx={{ mr: 0.5 }}
+              >
+                {isExpanded ? <ExpandLess /> : <ExpandMore />}
+              </IconButton>
+            )}
+            {!hasChildren && <Box sx={{ width: 32 }} />}
+            
+            <MenuItem 
+              value={cat._id}
+              disabled={isCurrentCategory}
+              sx={{ 
+                flexGrow: 1,
+                justifyContent: 'flex-start',
+                pl: hasChildren ? 0 : 4
+              }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                width: '100%'
+              }}>
+                <span style={{ 
+                  marginLeft: `${level * 8}px`,
+                  fontWeight: level === 0 ? 600 : 400
+                }}>
+                  {cat.name}
+                </span>
+              </Box>
+            </MenuItem>
+          </Box>
+          
+          {hasChildren && isExpanded && (
+            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', ml: 2 }}>
+              {renderCategoryTree(cat.subcategories, level + 1)}
+            </Box>
+          )}
+        </Box>
+      );
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
-      name,
-      imageUrl: categoryImage,
-      subcategories
-    });
+    
+    // Parent kategori validasyonu (kendini seçemez)
+    if (category && formData.parentId === category._id) {
+      alert('Kategori kendisinin üst kategorisi olamaz');
+      return;
+    }
+
+    onSave(formData);
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 1 : 3 }}>
       <Grid container spacing={isMobile ? 1 : 3}>
-        {/* Ana Kategori Bölümü */}
+        {/* Ana Kategori Bilgileri */}
         <Grid item xs={12}>
           <Paper elevation={0} sx={{ 
             p: isMobile ? 2 : 3, 
@@ -92,15 +181,76 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Kategori Adı"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  label="Kategori Adı *"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                   required
                   size={isMobile ? "small" : "medium"}
                 />
               </Grid>
               
               <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Sıralama"
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={(e) => handleInputChange('sortOrder', parseInt(e.target.value) || 0)}
+                  size={isMobile ? "small" : "medium"}
+                  helperText="Küçük sayılar önce gösterilir"
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Açıklama"
+                  multiline
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  size={isMobile ? "small" : "medium"}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <Typography variant="body2" gutterBottom>
+                    Üst Kategori
+                  </Typography>
+                  <Select
+                    value={formData.parentId || ''}
+                    onChange={(e) => handleInputChange('parentId', e.target.value)}
+                    displayEmpty
+                    size={isMobile ? "small" : "medium"}
+                    renderValue={(selected) => {
+                      if (!selected) return 'Kök Kategori (Üst Kategori Yok)';
+                      const findCategory = (cats, id) => {
+                        for (let cat of cats) {
+                          if (cat._id === id) return cat;
+                          if (cat.subcategories) {
+                            const found = findCategory(cat.subcategories, id);
+                            if (found) return found;
+                          }
+                        }
+                        return null;
+                      };
+                      const selectedCat = findCategory(categories, selected);
+                      return selectedCat ? selectedCat.name : 'Kategori bulunamadı';
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>Kök Kategori (Üst Kategori Yok)</em>
+                    </MenuItem>
+                    {renderCategoryTree(categories)}
+                  </Select>
+                  <FormHelperText>
+                    {formData.parentId ? 'Alt kategori olarak eklenecek' : 'Kök kategori olarak eklenecek'}
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
                 <FormControl fullWidth>
                   <Button
                     component="label"
@@ -122,14 +272,14 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                     <Input
                       type="file"
                       hidden
-                      onChange={(e) => handleImageUpload(e, setCategoryImage)}
+                      onChange={handleImageUpload}
                       accept="image/*"
                     />
                   </Button>
-                  {categoryImage && (
+                  {formData.imageUrl && (
                     <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                       <Avatar 
-                        src={categoryImage} 
+                        src={formData.imageUrl} 
                         sx={{ 
                           width: isMobile ? 32 : 40, 
                           height: isMobile ? 32 : 40, 
@@ -143,126 +293,6 @@ export default function CategoryForm({ category, onSave, onCancel }) {
                 </FormControl>
               </Grid>
             </Grid>
-          </Paper>
-        </Grid>
-
-        {/* Alt Kategoriler Bölümü */}
-        <Grid item xs={12}>
-          <Paper elevation={0} sx={{ 
-            p: isMobile ? 2 : 3, 
-            border: '1px solid #eee',
-            borderRadius: isMobile ? 1 : 2
-          }}>
-            <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom sx={{ fontWeight: 600 }}>
-              Alt Kategoriler
-            </Typography>
-            
-            {subcategories.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" gutterBottom>
-                  Mevcut Alt Kategoriler
-                </Typography>
-                <Grid container spacing={isMobile ? 1 : 2}>
-                  {subcategories.map((subcat, index) => (
-                    <Grid item xs={12} sm={6} key={index}>
-                      <Paper sx={{ 
-                        p: isMobile ? 1 : 2, 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        borderRadius: isMobile ? 1 : 2
-                      }}>
-                        {subcat.imageUrl && (
-                          <Avatar 
-                            src={subcat.imageUrl} 
-                            sx={{ 
-                              width: isMobile ? 32 : 40, 
-                              height: isMobile ? 32 : 40, 
-                              mr: isMobile ? 1 : 2 
-                            }}
-                            variant="rounded"
-                          />
-                        )}
-                        <Typography sx={{ flexGrow: 1, fontSize: isMobile ? '0.875rem' : '1rem' }}>
-                          {subcat.name}
-                        </Typography>
-                        <IconButton 
-                          onClick={() => setSubcategories(subcategories.filter((_, i) => i !== index))}
-                          size={isMobile ? "small" : "medium"}
-                          color="error"
-                        >
-                          <Delete fontSize={isMobile ? "small" : "medium"} />
-                        </IconButton>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            <Typography variant="body2" gutterBottom>
-              Yeni Alt Kategori Ekle
-            </Typography>
-            <Grid container spacing={isMobile ? 1 : 2} alignItems="center">
-              <Grid item xs={12} sm={5}>
-                <TextField
-                  fullWidth
-                  label="Alt Kategori Adı"
-                  value={newSubcategory}
-                  onChange={(e) => setNewSubcategory(e.target.value)}
-                  size={isMobile ? "small" : "medium"}
-                />
-              </Grid>
-              <Grid item xs={12} sm={5}>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<CloudUpload />}
-                  fullWidth
-                  size={isMobile ? "small" : "medium"}
-                  disabled={uploading}
-                  sx={{ py: isMobile ? 1 : undefined }}
-                >
-                  {uploading ? (
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                  ) : (
-                    'Resim Yükle'
-                  )}
-                  <Input
-                    type="file"
-                    hidden
-                    onChange={(e) => handleImageUpload(e, setNewSubcategoryImage)}
-                    accept="image/*"
-                  />
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <Button
-                  onClick={handleAddSubcategory}
-                  variant="contained"
-                  startIcon={<Add />}
-                  disabled={!newSubcategory.trim() || uploading}
-                  fullWidth
-                  size={isMobile ? "small" : "medium"}
-                  sx={{ py: isMobile ? 1 : undefined }}
-                >
-                  {isMobile ? '+' : 'Ekle'}
-                </Button>
-              </Grid>
-            </Grid>
-            {newSubcategoryImage && (
-              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-                <Avatar 
-                  src={newSubcategoryImage} 
-                  sx={{ 
-                    width: isMobile ? 28 : 32, 
-                    height: isMobile ? 28 : 32, 
-                    mr: 1 
-                  }}
-                  variant="rounded"
-                />
-                <Typography variant="caption">Resim hazır</Typography>
-              </Box>
-            )}
           </Paper>
         </Grid>
 
@@ -287,10 +317,10 @@ export default function CategoryForm({ category, onSave, onCancel }) {
               variant="contained" 
               color="primary"
               size={isMobile ? "medium" : "large"}
-              disabled={uploading}
+              disabled={uploading || !formData.name.trim()}
               fullWidth={isMobile}
             >
-              Kategoriyi Kaydet
+              {category ? 'Kategoriyi Güncelle' : 'Kategoriyi Oluştur'}
             </Button>
           </Box>
         </Grid>

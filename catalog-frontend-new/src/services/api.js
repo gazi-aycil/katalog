@@ -55,19 +55,26 @@ API.interceptors.response.use(
   }
 );
 
+// KATEGORİ API FONKSİYONLARI
 export const createCategory = (category) => API.post('/categories', category);
-export const createItem = (item) => API.post('/items', item);
-export const getCategories = () => API.get('/categories');
+export const getCategories = (endpoint = '/categories') => API.get(endpoint);
+export const getCategoriesTree = () => API.get('/categories/tree');
+export const getCategoriesFlat = () => API.get('/categories/flat');
+export const getRootCategories = () => API.get('/categories/roots');
+export const getCategoryHierarchy = (categoryId) => API.get(`/categories/${categoryId}/hierarchy`);
+export const getCategoryChildren = (parentId) => API.get(`/categories/${parentId}/children`);
 export const updateCategory = (id, category) => API.put(`/categories/${id}`, category);
 export const deleteCategory = (id) => API.delete(`/categories/${id}`);
 
+// ÜRÜN API FONKSİYONLARI
+export const createItem = (item) => API.post('/items', item);
 export const getItems = () => API.get('/items');
+export const getItem = (id) => API.get(`/items/${id}`);
 export const updateItem = (id, itemData) => API.put(`/items/${id}`, itemData);
 export const deleteItem = (id) => API.delete(`/items/${id}`);
+export const getItemsByCategory = (categoryId) => API.get(`/categories/${categoryId}/products`);
 
-export const getItemsByCategory = (categoryName, subcategoryName) => 
-  API.get(`/items/${categoryName}/${subcategoryName || ''}`);
-
+// RESİM YÜKLEME FONKSİYONLARI
 export const uploadImages = (formData) => {
   return API.post('/upload', formData, {
     headers: {
@@ -93,7 +100,7 @@ export const uploadProductImages = (formData) => {
   });
 };
 
-// Excel import/export fonksiyonları
+// EXCEL IMPORT/EXPORT FONKSİYONLARI
 export const exportProductsTemplate = () => {
   return API.get('/export/products-template', {
     responseType: 'blob',
@@ -117,5 +124,11 @@ export const exportProducts = () => {
   });
 };
 
-// Health check
+// HEALTH CHECK
 export const healthCheck = () => API.get('/health');
+
+// DEBUG ENDPOINTS
+export const debugCategories = () => API.get('/debug/categories');
+export const debugItems = () => API.get('/debug/items');
+
+export default API;
