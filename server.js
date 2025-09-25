@@ -29,6 +29,14 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// parentId boş string kontrol middleware
+app.use((req, res, next) => {
+  if (req.body && req.body.parentId === '') {
+    req.body.parentId = null;
+  }
+  next();
+});
+
 // Hata ayıklama middleware'leri
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -119,7 +127,14 @@ const categorySchema = new mongoose.Schema({
   parentId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Category',
-    default: null 
+    default: null,
+    validate: {
+      validator: function(v) {
+        // null veya geçerli ObjectId ise kabul et
+        return v === null || mongoose.Types.ObjectId.isValid(v);
+      },
+      message: 'Geçersiz parentId değeri'
+    }
   },
   path: { type: String, default: '' },
   level: { type: Number, default: 0 },
@@ -366,24 +381,45 @@ app.get('/api/categories/:id', async (req, res) => {
   }
 });
 
-// Yeni kategori oluştur
+// Yeni kategori oluştur - DÜZELTİLMİŞ VERSİYON
 app.post('/api/categories', async (req, res) => {
   try {
-    // Parent kategori kontrolü
-    if (req.body.parentId) {
-      const parentCategory = await Category.findById(req.body.parentId);
+    // ParentId kontrolü - boş string veya null değerleri null yap
+    let parentId = req.body.parentId;
+    if (parentId === '' || parentId === null || parentId === undefined) {
+      parentId = null;
+    }
+
+    // Parent kategori kontrolü (eğer parentId varsa)
+    if (parentId) {
+      // Geçerli ObjectId kontrolü
+      if (!mongoose.Types.ObjectId.isValid(parentId)) {
+        return res.status(400).json({ message: 'Geçersiz üst kategori ID formatı' });
+      }
+
+      const parentCategory = await Category.findById(parentId);
       if (!parentCategory) {
         return res.status(400).json({ message: 'Geçersiz üst kategori ID' });
       }
     }
 
-    const newCategory = new Category(req.body);
+    // Kategori verisini hazırla
+    const categoryData = {
+      name: req.body.name,
+      description: req.body.description,
+      imageUrl: req.body.imageUrl,
+      parentId: parentId, // null veya geçerli ObjectId
+      sortOrder: req.body.sortOrder || 0
+    };
+
+    const newCategory = new Category(categoryData);
     const savedCategory = await newCategory.save();
     
     // Tam hiyerarşi ile birlikte döndür
     const fullCategory = await savedCategory.getFullHierarchy();
     res.status(201).json(fullCategory);
   } catch (err) {
+    console.error('Kategori oluşturma hatası:', err);
     res.status(400).json({ 
       message: 'Kategori oluşturulurken hata oluştu',
       error: err.message
@@ -391,17 +427,45 @@ app.post('/api/categories', async (req, res) => {
   }
 });
 
-// Kategori güncelle
+// Kategori güncelle - DÜZELTİLMİŞ VERSİYON
 app.put('/api/categories/:id', async (req, res) => {
   try {
+    // ParentId kontrolü - boş string veya null değerleri null yap
+    let parentId = req.body.parentId;
+    if (parentId === '' || parentId === null || parentId === undefined) {
+      parentId = null;
+    }
+
     // Parent değişikliği kontrolü (kendini parent yapmamalı)
-    if (req.body.parentId === req.params.id) {
+    if (parentId && parentId.toString() === req.params.id) {
       return res.status(400).json({ message: 'Kategori kendisinin üst kategorisi olamaz' });
     }
 
+    // Parent kategori kontrolü (eğer parentId varsa)
+    if (parentId) {
+      // Geçerli ObjectId kontrolü
+      if (!mongoose.Types.ObjectId.isValid(parentId)) {
+        return res.status(400).json({ message: 'Geçersiz üst kategori ID formatı' });
+      }
+
+      const parentCategory = await Category.findById(parentId);
+      if (!parentCategory) {
+        return res.status(400).json({ message: 'Geçersiz üst kategori ID' });
+      }
+    }
+
+    // Güncelleme verisini hazırla
+    const updateData = {
+      name: req.body.name,
+      description: req.body.description,
+      imageUrl: req.body.imageUrl,
+      parentId: parentId,
+      sortOrder: req.body.sortOrder
+    };
+
     const updatedCategory = await Category.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
     
@@ -411,6 +475,7 @@ app.put('/api/categories/:id', async (req, res) => {
     
     res.json(updatedCategory);
   } catch (err) {
+    console.error('Kategori güncelleme hatası:', err);
     res.status(400).json({ 
       message: 'Kategori güncellenirken hata oluştu',
       error: err.message
@@ -482,7 +547,7 @@ app.put('/api/categories/:id/sort', async (req, res) => {
   }
 });
 
-// ÜRÜN ENDPOINT'LERİ (Güncellenmiş)
+// ÜRÜN ENDPOINT'LERİ
 
 // Özel fiyat validasyon fonksiyonu
 const validatePrice = (value) => {
@@ -713,7 +778,7 @@ app.get('/api/categories/:categoryId/products', async (req, res) => {
   }
 });
 
-// EXCEL IMPORT/EXPORT ENDPOINT'LERİ (Güncellenmiş)
+// EXCEL IMPORT/EXPORT ENDPOINT'LERİ
 
 // Excel Şablonu İndirme Endpoint'i
 app.get('/api/export/products-template', async (req, res) => {
