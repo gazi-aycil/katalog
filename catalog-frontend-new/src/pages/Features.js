@@ -340,58 +340,7 @@ export default function Features() {
       )}
 
       {/* Excel Özellikleri Ekleme */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Hızlı Özellik Ekle (Excel'den)
-        </Typography>
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              startIcon={<PlaylistAdd />}
-              onClick={() => handleAddExcelFeatures('dis_ceph')}
-              fullWidth
-              disabled={loading}
-            >
-              Dış Cephe Alanları
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              startIcon={<PlaylistAdd />}
-              onClick={() => handleAddExcelFeatures('ic_ceph')}
-              fullWidth
-              disabled={loading}
-            >
-              İç Cephe Alanları
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              startIcon={<PlaylistAdd />}
-              onClick={() => handleAddExcelFeatures('measurements')}
-              fullWidth
-              disabled={loading}
-            >
-              Ölçü Birimleri
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              startIcon={<PlaylistAdd />}
-              onClick={() => handleAddExcelFeatures('properties')}
-              fullWidth
-              disabled={loading}
-            >
-              Ürün Özellikleri
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+
 
       {/* Yeni Özellik Ekleme Formu */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
