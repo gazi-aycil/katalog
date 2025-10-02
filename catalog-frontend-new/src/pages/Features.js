@@ -21,6 +21,7 @@ import {
   MenuItem,
   Card,
   CardContent,
+  CircularProgress
 } from '@mui/material';
 import { Delete, Add, PlaylistAdd } from '@mui/icons-material';
 
@@ -32,6 +33,9 @@ const FEATURE_TYPES = {
   PRODUCT_MEASUREMENTS: 'product_measurements',
   PRODUCT_PROPERTIES: 'product_properties'
 };
+
+// API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
 // Excel'den alınan özellikler
 const EXCEL_FEATURES = {
@@ -90,6 +94,60 @@ const EXCEL_FEATURES = {
   ]
 };
 
+// API fonksiyonları
+const featuresApi = {
+  // Tüm özellikleri getir
+  getFeatures: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/features`);
+    if (!response.ok) throw new Error('Özellikler yüklenirken hata oluştu');
+    return response.json();
+  },
+
+  // Yeni özellik ekle
+  createFeature: async (featureData) => {
+    const response = await fetch(`${API_BASE_URL}/api/features`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(featureData)
+    });
+    if (!response.ok) throw new Error('Özellik eklenirken hata oluştu');
+    return response.json();
+  },
+
+  // Özellik sil
+  deleteFeature: async (featureId) => {
+    const response = await fetch(`${API_BASE_URL}/api/features/${featureId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Özellik silinirken hata oluştu');
+    return response.json();
+  },
+
+  // Tüm özellikleri sil (türe göre)
+  deleteFeaturesByType: async (featureType) => {
+    const response = await fetch(`${API_BASE_URL}/api/features/type/${featureType}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Özellikler silinirken hata oluştu');
+    return response.json();
+  },
+
+  // Toplu özellik ekle
+  bulkCreateFeatures: async (featuresData) => {
+    const response = await fetch(`${API_BASE_URL}/api/features/bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ features: featuresData })
+    });
+    if (!response.ok) throw new Error('Özellikler toplu eklenirken hata oluştu');
+    return response.json();
+  }
+};
+
 export default function Features() {
   const [features, setFeatures] = useState([]);
   const [newFeatureName, setNewFeatureName] = useState('');
@@ -97,26 +155,24 @@ export default function Features() {
   const [featureType, setFeatureType] = useState(FEATURE_TYPES.USAGE_AREA);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
   const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // Özellikleri localStorage'dan yükle
+  // Özellikleri API'dan yükle
   useEffect(() => {
-    const loadFeatures = () => {
+    const loadFeatures = async () => {
       try {
-        const savedFeatures = localStorage.getItem(FEATURES_STORAGE_KEY);
-        if (savedFeatures) {
-          setFeatures(JSON.parse(savedFeatures));
-        }
+        setLoading(true);
+        const data = await featuresApi.getFeatures();
+        setFeatures(data);
       } catch (error) {
         console.error('Özellikler yüklenirken hata:', error);
+        showAlert('Özellikler yüklenirken hata oluştu', 'error');
+      } finally {
+        setLoading(false);
       }
     };
     loadFeatures();
   }, []);
-
-  // Özellikleri localStorage'a kaydet
-  useEffect(() => {
-    localStorage.setItem(FEATURES_STORAGE_KEY, JSON.stringify(features));
-  }, [features]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -125,7 +181,7 @@ export default function Features() {
     setFeatureType(types[newValue]);
   };
 
-  const handleAddFeature = () => {
+  const handleAddFeature = async () => {
     if (!newFeatureName.trim()) {
       showAlert('Özellik adı boş olamaz', 'error');
       return;
@@ -136,67 +192,66 @@ export default function Features() {
       return;
     }
 
-    const newFeature = {
-      id: Date.now().toString(),
-      name: newFeatureName.trim(),
-      description: newFeatureDesc.trim(),
-      type: featureType,
-      hasValue: featureType === FEATURE_TYPES.PRODUCT_MEASUREMENTS,
-      createdAt: new Date().toISOString()
-    };
+    try {
+      setLoading(true);
+      const newFeature = {
+        name: newFeatureName.trim(),
+        description: newFeatureDesc.trim(),
+        type: featureType,
+        hasValue: featureType === FEATURE_TYPES.PRODUCT_MEASUREMENTS
+      };
 
-    setFeatures(prev => [...prev, newFeature]);
-    setNewFeatureName('');
-    setNewFeatureDesc('');
-    showAlert('Özellik başarıyla eklendi', 'success');
+      const savedFeature = await featuresApi.createFeature(newFeature);
+      setFeatures(prev => [...prev, savedFeature]);
+      setNewFeatureName('');
+      setNewFeatureDesc('');
+      showAlert('Özellik başarıyla eklendi', 'success');
+    } catch (error) {
+      console.error('Özellik ekleme hatası:', error);
+      showAlert('Özellik eklenirken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Excel'den özellikleri toplu ekle
-  const handleAddExcelFeatures = (category) => {
+  const handleAddExcelFeatures = async (category) => {
     let featuresToAdd = [];
     
     switch (category) {
       case 'dis_ceph':
         featuresToAdd = EXCEL_FEATURES.USAGE_AREAS.DIS_CEPH.map(name => ({
-          id: `dis_ceph_${Date.now()}_${Math.random()}`,
           name,
           description: 'Dış Cephe Kullanım Alanı',
           type: FEATURE_TYPES.USAGE_AREA,
-          hasValue: false,
-          createdAt: new Date().toISOString()
+          hasValue: false
         }));
         break;
         
       case 'ic_ceph':
         featuresToAdd = EXCEL_FEATURES.USAGE_AREAS.IC_CEPH.map(name => ({
-          id: `ic_ceph_${Date.now()}_${Math.random()}`,
           name,
           description: 'İç Cephe Kullanım Alanı',
           type: FEATURE_TYPES.USAGE_AREA,
-          hasValue: false,
-          createdAt: new Date().toISOString()
+          hasValue: false
         }));
         break;
         
       case 'measurements':
         featuresToAdd = EXCEL_FEATURES.MEASUREMENTS.map(item => ({
-          id: `measure_${Date.now()}_${Math.random()}`,
           name: item.name,
           description: item.description,
           type: FEATURE_TYPES.PRODUCT_MEASUREMENTS,
-          hasValue: true,
-          createdAt: new Date().toISOString()
+          hasValue: true
         }));
         break;
         
       case 'properties':
         featuresToAdd = EXCEL_FEATURES.PROPERTIES.map(name => ({
-          id: `prop_${Date.now()}_${Math.random()}`,
           name,
           description: 'Ürün Özelliği',
           type: FEATURE_TYPES.PRODUCT_PROPERTIES,
-          hasValue: false,
-          createdAt: new Date().toISOString()
+          hasValue: false
         }));
         break;
         
@@ -204,27 +259,54 @@ export default function Features() {
         return;
     }
     
-    // Sadece mevcut olmayan özellikleri ekle
-    const existingNames = features.map(f => f.name.toLowerCase());
-    const newFeatures = featuresToAdd.filter(f => !existingNames.includes(f.name.toLowerCase()));
-    
-    if (newFeatures.length === 0) {
-      showAlert('Tüm özellikler zaten mevcut', 'info');
-      return;
+    try {
+      setLoading(true);
+      // Sadece mevcut olmayan özellikleri ekle
+      const existingNames = features.map(f => f.name.toLowerCase());
+      const newFeatures = featuresToAdd.filter(f => !existingNames.includes(f.name.toLowerCase()));
+      
+      if (newFeatures.length === 0) {
+        showAlert('Tüm özellikler zaten mevcut', 'info');
+        return;
+      }
+      
+      const result = await featuresApi.bulkCreateFeatures(newFeatures);
+      setFeatures(prev => [...prev, ...result.features]);
+      showAlert(`${newFeatures.length} yeni özellik eklendi`, 'success');
+    } catch (error) {
+      console.error('Toplu özellik ekleme hatası:', error);
+      showAlert('Özellikler eklenirken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
     }
-    
-    setFeatures(prev => [...prev, ...newFeatures]);
-    showAlert(`${newFeatures.length} yeni özellik eklendi`, 'success');
   };
 
-  const handleDeleteFeature = (id) => {
-    setFeatures(prev => prev.filter(f => f.id !== id));
-    showAlert('Özellik silindi', 'info');
+  const handleDeleteFeature = async (id) => {
+    try {
+      setLoading(true);
+      await featuresApi.deleteFeature(id);
+      setFeatures(prev => prev.filter(f => f._id !== id));
+      showAlert('Özellik silindi', 'info');
+    } catch (error) {
+      console.error('Özellik silme hatası:', error);
+      showAlert('Özellik silinirken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteAllFeatures = (type) => {
-    setFeatures(prev => prev.filter(f => f.type !== type));
-    showAlert('Tüm özellikler silindi', 'info');
+  const handleDeleteAllFeatures = async (type) => {
+    try {
+      setLoading(true);
+      await featuresApi.deleteFeaturesByType(type);
+      setFeatures(prev => prev.filter(f => f.type !== type));
+      showAlert('Tüm özellikler silindi', 'info');
+    } catch (error) {
+      console.error('Özellikler silme hatası:', error);
+      showAlert('Özellikler silinirken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const showAlert = (message, severity) => {
@@ -236,6 +318,14 @@ export default function Features() {
   const usageAreaFeatures = features.filter(f => f.type === FEATURE_TYPES.USAGE_AREA);
   const measurementFeatures = features.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS);
   const propertyFeatures = features.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES);
+
+  if (loading && features.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
@@ -249,7 +339,59 @@ export default function Features() {
         </Alert>
       )}
 
-   
+      {/* Excel Özellikleri Ekleme */}
+      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          Hızlı Özellik Ekle (Excel'den)
+        </Typography>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              startIcon={<PlaylistAdd />}
+              onClick={() => handleAddExcelFeatures('dis_ceph')}
+              fullWidth
+              disabled={loading}
+            >
+              Dış Cephe Alanları
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              startIcon={<PlaylistAdd />}
+              onClick={() => handleAddExcelFeatures('ic_ceph')}
+              fullWidth
+              disabled={loading}
+            >
+              İç Cephe Alanları
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              startIcon={<PlaylistAdd />}
+              onClick={() => handleAddExcelFeatures('measurements')}
+              fullWidth
+              disabled={loading}
+            >
+              Ölçü Birimleri
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              startIcon={<PlaylistAdd />}
+              onClick={() => handleAddExcelFeatures('properties')}
+              fullWidth
+              disabled={loading}
+            >
+              Ürün Özellikleri
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Yeni Özellik Ekleme Formu */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
@@ -266,6 +408,7 @@ export default function Features() {
                 label="Özellik Türü"
                 onChange={(e) => setFeatureType(e.target.value)}
                 size="medium"
+                disabled={loading}
               >
                 <MenuItem value={FEATURE_TYPES.USAGE_AREA}>Kullanım Alanları</MenuItem>
                 <MenuItem value={FEATURE_TYPES.PRODUCT_MEASUREMENTS}>Ürün Ölçüleri</MenuItem>
@@ -287,6 +430,7 @@ export default function Features() {
                   : "Örn: Su Geçirmez, Ateşe Dayanıklı..."
               }
               size="medium"
+              disabled={loading}
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -297,6 +441,7 @@ export default function Features() {
               onChange={(e) => setNewFeatureDesc(e.target.value)}
               placeholder="Özellik açıklaması..."
               size="medium"
+              disabled={loading}
             />
           </Grid>
           <Grid item xs={12} md={2}>
@@ -306,9 +451,9 @@ export default function Features() {
               onClick={handleAddFeature}
               fullWidth
               size="large"
-              disabled={!newFeatureName.trim()}
+              disabled={!newFeatureName.trim() || loading}
             >
-              Ekle
+              {loading ? <CircularProgress size={24} /> : 'Ekle'}
             </Button>
           </Grid>
         </Grid>
@@ -346,7 +491,7 @@ export default function Features() {
                 color="error" 
                 size="small"
                 onClick={() => handleDeleteAllFeatures(FEATURE_TYPES.USAGE_AREA)}
-                disabled={usageAreaFeatures.length === 0}
+                disabled={usageAreaFeatures.length === 0 || loading}
               >
                 Tümünü Sil
               </Button>
@@ -361,7 +506,7 @@ export default function Features() {
             ) : (
               <List>
                 {usageAreaFeatures.map((feature, index) => (
-                  <React.Fragment key={feature.id}>
+                  <React.Fragment key={feature._id}>
                     <ListItem>
                       <ListItemText
                         primary={
@@ -395,8 +540,9 @@ export default function Features() {
                         <IconButton
                           edge="end"
                           aria-label="delete"
-                          onClick={() => handleDeleteFeature(feature.id)}
+                          onClick={() => handleDeleteFeature(feature._id)}
                           color="error"
+                          disabled={loading}
                         >
                           <Delete />
                         </IconButton>
@@ -420,7 +566,7 @@ export default function Features() {
                 color="error" 
                 size="small"
                 onClick={() => handleDeleteAllFeatures(FEATURE_TYPES.PRODUCT_MEASUREMENTS)}
-                disabled={measurementFeatures.length === 0}
+                disabled={measurementFeatures.length === 0 || loading}
               >
                 Tümünü Sil
               </Button>
@@ -435,7 +581,7 @@ export default function Features() {
             ) : (
               <List>
                 {measurementFeatures.map((feature, index) => (
-                  <React.Fragment key={feature.id}>
+                  <React.Fragment key={feature._id}>
                     <ListItem>
                       <ListItemText
                         primary={
@@ -487,8 +633,9 @@ export default function Features() {
                         <IconButton
                           edge="end"
                           aria-label="delete"
-                          onClick={() => handleDeleteFeature(feature.id)}
+                          onClick={() => handleDeleteFeature(feature._id)}
                           color="error"
+                          disabled={loading}
                         >
                           <Delete />
                         </IconButton>
@@ -512,7 +659,7 @@ export default function Features() {
                 color="error" 
                 size="small"
                 onClick={() => handleDeleteAllFeatures(FEATURE_TYPES.PRODUCT_PROPERTIES)}
-                disabled={propertyFeatures.length === 0}
+                disabled={propertyFeatures.length === 0 || loading}
               >
                 Tümünü Sil
               </Button>
@@ -527,7 +674,7 @@ export default function Features() {
             ) : (
               <List>
                 {propertyFeatures.map((feature, index) => (
-                  <React.Fragment key={feature.id}>
+                  <React.Fragment key={feature._id}>
                     <ListItem>
                       <ListItemText
                         primary={
@@ -561,8 +708,9 @@ export default function Features() {
                         <IconButton
                           edge="end"
                           aria-label="delete"
-                          onClick={() => handleDeleteFeature(feature.id)}
+                          onClick={() => handleDeleteFeature(feature._id)}
                           color="error"
+                          disabled={loading}
                         >
                           <Delete />
                         </IconButton>
@@ -584,6 +732,7 @@ export default function Features() {
           <br />• <strong>Kullanım Alanları:</strong> Checkbox ile seçilir (örn: Mutfak, Banyo)
           <br />• <strong>Ürün Ölçüleri:</strong> Değer girişi ile kullanılır (örn: Genişlik: 120cm)
           <br />• <strong>Ürün Özellikleri:</strong> Checkbox ile seçilir (örn: Su Geçirmez, Ateşe Dayanıklı)
+          <br />• <strong>Veritabanı:</strong> Tüm özellikler MongoDB'de saklanır
         </Typography>
       </Alert>
     </Box>

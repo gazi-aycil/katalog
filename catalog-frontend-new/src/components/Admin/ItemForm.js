@@ -17,7 +17,6 @@ import {
   Input,
   useMediaQuery,
   useTheme,
-  ButtonGroup,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,13 +25,12 @@ import {
   FormHelperText,
   Tabs,
   Tab,
+  Breadcrumbs,
+  Alert,
+  Collapse
 } from '@mui/material';
-import { Add, Delete, CloudUpload, Close, ImportExport } from '@mui/icons-material';
-import { getCategories, uploadProductImages } from '../../services/api';
-import ExcelImport from './ExcelImport';
-
-// Özellik ayarları için localStorage key
-const FEATURES_STORAGE_KEY = 'product_features';
+import { Add, Delete, CloudUpload, Close, NavigateNext } from '@mui/icons-material';
+import { getCategories, uploadProductImages, getFeatures } from '../../services/api';
 
 // Özellik türleri
 const FEATURE_TYPES = {
@@ -41,15 +39,13 @@ const FEATURE_TYPES = {
   PRODUCT_PROPERTIES: 'product_properties'
 };
 
-// Özellikleri localStorage'dan yükleyen fonksiyon
-const loadFeaturesFromStorage = () => {
-  try {
-    const savedFeatures = localStorage.getItem(FEATURES_STORAGE_KEY);
-    return savedFeatures ? JSON.parse(savedFeatures) : [];
-  } catch (error) {
-    console.error('Özellikler yüklenirken hata:', error);
-    return [];
-  }
+// Kategori seviye renkleri (ANA KATEGORİ + 4 SEVİYE)
+const CATEGORY_LEVEL_COLORS = {
+  0: { bg: '#ffebee', border: '#c62828', text: '#b71c1c' },
+  1: { bg: '#e3f2fd', border: '#1976d2', text: '#1565c0' },
+  2: { bg: '#f3e5f5', border: '#7b1fa2', text: '#6a1b9a' },
+  3: { bg: '#e8f5e8', border: '#388e3c', text: '#2e7d32' },
+  4: { bg: '#fff3e0', border: '#f57c00', text: '#ef6c00' }
 };
 
 export default function ItemForm({ item, onSave, onCancel }) {
@@ -62,34 +58,73 @@ export default function ItemForm({ item, onSave, onCancel }) {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState(0);
   const [askForPrice, setAskForPrice] = useState(false);
-  const [category, setCategory] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subcategory, setSubcategory] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
   const [specs, setSpecs] = useState([]);
   const [newSpec, setNewSpec] = useState('');
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [excelImportOpen, setExcelImportOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [showExcelSection, setShowExcelSection] = useState(false);
   
-  // Özellik ayarları state'leri
+  // Kategori state'leri
+  const [selectedCategories, setSelectedCategories] = useState({
+    main: { id: '', name: '', data: null },
+    level1: { id: '', name: '', data: null },
+    level2: { id: '', name: '', data: null },
+    level3: { id: '', name: '', data: null },
+    level4: { id: '', name: '', data: null }
+  });
+  
+  const [availableSubcategories, setAvailableSubcategories] = useState({
+    main: [],
+    level1: [],
+    level2: [],
+    level3: [],
+    level4: []
+  });
+  
+  // Özellik state'leri
   const [availableFeatures, setAvailableFeatures] = useState([]);
   const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [showFeatureSelection, setShowFeatureSelection] = useState(false);
   const [measurementValues, setMeasurementValues] = useState({});
   const [featureTabValue, setFeatureTabValue] = useState(0);
+  const [loadingFeatures, setLoadingFeatures] = useState(false);
 
-  // Özellikleri yeniden yükleme fonksiyonu
-  const refreshFeatures = () => {
-    const features = loadFeaturesFromStorage();
-    setAvailableFeatures(features);
+  // Özellikleri API'dan yükle
+  const loadFeaturesFromAPI = async () => {
+    setLoadingFeatures(true);
+    try {
+      const response = await getFeatures();
+      setAvailableFeatures(response.data || []);
+    } catch (error) {
+      console.error('Özellikler yüklenirken hata:', error);
+      setError('Özellikler yüklenirken hata oluştu');
+    } finally {
+      setLoadingFeatures(false);
+    }
   };
 
-  // Kayıtlı özellikleri localStorage'dan yükle
+  // Kategori hiyerarşisini bulan fonksiyon
+  const findCategoryHierarchy = (cats, targetId, currentPath = []) => {
+    for (const category of cats) {
+      const newPath = [...currentPath, category];
+      
+      if (category._id === targetId) {
+        return newPath;
+      }
+      
+      if (category.subcategories && category.subcategories.length > 0) {
+        const result = findCategoryHierarchy(category.subcategories, targetId, newPath);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  // Özellikleri API'dan yükle
   useEffect(() => {
-    refreshFeatures();
+    loadFeaturesFromAPI();
   }, []);
 
   // Kategorileri yükle
@@ -98,23 +133,32 @@ export default function ItemForm({ item, onSave, onCancel }) {
       try {
         const response = await getCategories();
         setCategories(response.data);
+        setAvailableSubcategories(prev => ({
+          ...prev,
+          main: response.data
+        }));
       } catch (err) {
         console.error('Kategoriler alınırken hata oluştu', err);
+        setError('Kategoriler yüklenirken hata oluştu');
       }
     };
     fetchCategories();
   }, []);
 
+  // Kategoriler yüklendiğinde mevcut ürünün kategorisini ayarla
+  useEffect(() => {
+    if (item && categories.length > 0) {
+      setupCategoriesFromItem(item);
+    }
+  }, [categories, item]);
+
   // Mevcut ürün verilerini yükle
   useEffect(() => {
     if (item) {
-      console.log('Ürün verileri yükleniyor:', item);
-      
       setBarcode(item.barcode || '');
       setName(item.name || '');
       setDescription(item.description || '');
       
-      // Fiyat ve "Fiyat Alınız" durumunu kontrol et
       if (item.price === 'Fiyat Alınız') {
         setAskForPrice(true);
         setPrice(0);
@@ -123,22 +167,58 @@ export default function ItemForm({ item, onSave, onCancel }) {
         setPrice(item.price || 0);
       }
       
-      setCategory(item.category || '');
-      setCategoryId(item.categoryId || '');
-      setSubcategory(item.subcategory || '');
-      setSubcategoryId(item.subcategoryId || '');
       setSpecs(item.specs || []);
       setImages(item.images || []);
 
-      // Özellikleri ve ölçü değerlerini ayarla
-      setTimeout(() => {
+      if (categories.length > 0) {
+        setupCategoriesFromItem(item);
         setupFeaturesAndMeasurements(item.specs || []);
-      }, 100);
+      }
     } else {
-      // Yeni ürün için varsayılan değerler
       resetForm();
     }
   }, [item]);
+
+  // Ürün verilerinden kategori bilgilerini ayarla
+  const setupCategoriesFromItem = (product) => {
+    if (!product.categoryId) return;
+
+    const hierarchy = findCategoryHierarchy(categories, product.categoryId);
+    
+    if (hierarchy) {
+      const newSelectedCategories = {
+        main: { id: '', name: '', data: null },
+        level1: { id: '', name: '', data: null },
+        level2: { id: '', name: '', data: null },
+        level3: { id: '', name: '', data: null },
+        level4: { id: '', name: '', data: null }
+      };
+
+      if (hierarchy.length > 0) {
+        newSelectedCategories.main = {
+          id: hierarchy[0]._id,
+          name: hierarchy[0].name,
+          data: hierarchy[0]
+        };
+      }
+
+      hierarchy.forEach((category, index) => {
+        if (index > 0) {
+          const levelKey = `level${index}`;
+          if (newSelectedCategories[levelKey]) {
+            newSelectedCategories[levelKey] = {
+              id: category._id,
+              name: category.name,
+              data: category
+            };
+          }
+        }
+      });
+
+      setSelectedCategories(newSelectedCategories);
+      updateAvailableSubcategories(newSelectedCategories);
+    }
+  };
 
   // Formu sıfırla
   const resetForm = () => {
@@ -147,14 +227,18 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setDescription('');
     setPrice(0);
     setAskForPrice(false);
-    setCategory('');
-    setCategoryId('');
-    setSubcategory('');
-    setSubcategoryId('');
     setSpecs([]);
     setImages([]);
     setSelectedFeatures([]);
     setMeasurementValues({});
+    setSelectedCategories({
+      main: { id: '', name: '', data: null },
+      level1: { id: '', name: '', data: null },
+      level2: { id: '', name: '', data: null },
+      level3: { id: '', name: '', data: null },
+      level4: { id: '', name: '', data: null }
+    });
+    setError('');
   };
 
   // Özellikleri ve ölçü değerlerini ayarla
@@ -165,24 +249,21 @@ export default function ItemForm({ item, onSave, onCancel }) {
       return;
     }
 
-    const features = loadFeaturesFromStorage();
     const selected = [];
     const values = {};
 
     productSpecs.forEach(spec => {
-      // Ölçü değeri içeren özellikleri kontrol et (örn: "Genişlik: 120cm")
       if (spec.includes(':')) {
         const [namePart, valuePart] = spec.split(':').map(s => s.trim());
-        const feature = features.find(f => 
+        const feature = availableFeatures.find(f => 
           f.name === namePart && f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS
         );
         if (feature) {
           selected.push(feature);
-          values[feature.id] = valuePart;
+          values[feature._id] = valuePart;
         }
       } else {
-        // Normal özellikleri kontrol et
-        const feature = features.find(f => f.name === spec);
+        const feature = availableFeatures.find(f => f.name === spec);
         if (feature) {
           selected.push(feature);
         }
@@ -193,34 +274,76 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setMeasurementValues(values);
   };
 
-  // Alt kategorileri güncelle
-  useEffect(() => {
-    if (categoryId && categories.length > 0) {
-      const selectedCategory = categories.find(c => c._id === categoryId);
-      if (selectedCategory) {
-        setCategory(selectedCategory.name);
-        setSubcategories(selectedCategory.subcategories || []);
-        
-        // Mevcut alt kategoriyi kontrol et
-        if (item?.subcategoryId) {
-          const existingSubcategory = selectedCategory.subcategories.find(
-            sub => sub._id === item.subcategoryId
-          );
-          if (existingSubcategory) {
-            setSubcategory(existingSubcategory.name);
-            setSubcategoryId(existingSubcategory._id);
-          } else {
-            setSubcategory('');
-            setSubcategoryId('');
-          }
-        }
+  // Kategori seçildiğinde
+  const handleCategorySelect = (level, category) => {
+    const newSelectedCategories = { ...selectedCategories };
+    
+    const levels = ['main', 'level1', 'level2', 'level3', 'level4'];
+    const startIndex = levels.indexOf(level);
+    
+    for (let i = startIndex; i < levels.length; i++) {
+      const levelKey = levels[i];
+      if (i > startIndex) {
+        newSelectedCategories[levelKey] = { id: '', name: '', data: null };
+      } else {
+        newSelectedCategories[levelKey] = {
+          id: category._id,
+          name: category.name,
+          data: category
+        };
       }
-    } else {
-      setSubcategories([]);
-      setSubcategory('');
-      setSubcategoryId('');
     }
-  }, [categoryId, categories, item]);
+    
+    setSelectedCategories(newSelectedCategories);
+    updateAvailableSubcategories(newSelectedCategories);
+    setError('');
+  };
+
+  // Kategori temizle
+  const handleClearCategory = (level) => {
+    const newSelectedCategories = { ...selectedCategories };
+    
+    const levels = ['main', 'level1', 'level2', 'level3', 'level4'];
+    const startIndex = levels.indexOf(level);
+    
+    for (let i = startIndex; i < levels.length; i++) {
+      const levelKey = levels[i];
+      newSelectedCategories[levelKey] = { id: '', name: '', data: null };
+    }
+    
+    setSelectedCategories(newSelectedCategories);
+    updateAvailableSubcategories(newSelectedCategories);
+    setError('');
+  };
+
+  // Mevcut kategorilere göre alt kategorileri güncelle
+  const updateAvailableSubcategories = (currentSelected) => {
+    const newAvailable = {
+      main: categories,
+      level1: [],
+      level2: [],
+      level3: [],
+      level4: []
+    };
+
+    if (currentSelected.main.data && currentSelected.main.data.subcategories) {
+      newAvailable.level1 = currentSelected.main.data.subcategories;
+    }
+
+    if (currentSelected.level1.data && currentSelected.level1.data.subcategories) {
+      newAvailable.level2 = currentSelected.level1.data.subcategories;
+    }
+
+    if (currentSelected.level2.data && currentSelected.level2.data.subcategories) {
+      newAvailable.level3 = currentSelected.level2.data.subcategories;
+    }
+
+    if (currentSelected.level3.data && currentSelected.level3.data.subcategories) {
+      newAvailable.level4 = currentSelected.level3.data.subcategories;
+    }
+
+    setAvailableSubcategories(newAvailable);
+  };
 
   // Tab değişimi
   const handleFeatureTabChange = (event, newValue) => {
@@ -238,15 +361,14 @@ export default function ItemForm({ item, onSave, onCancel }) {
   // Özellik seçimini toggle et
   const handleFeatureToggle = (feature) => {
     setSelectedFeatures(prev => {
-      const isSelected = prev.find(f => f.id === feature.id);
+      const isSelected = prev.find(f => f._id === feature._id);
       if (isSelected) {
-        // Seçimi kaldırırsa, ölçü değerini de temizle
         setMeasurementValues(prev => {
           const newValues = { ...prev };
-          delete newValues[feature.id];
+          delete newValues[feature._id];
           return newValues;
         });
-        return prev.filter(f => f.id !== feature.id);
+        return prev.filter(f => f._id !== feature._id);
       } else {
         return [...prev, feature];
       }
@@ -256,13 +378,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
   // Seçilen özellikleri specs'e ekle
   const applySelectedFeatures = () => {
     const featureEntries = selectedFeatures.map(f => {
-      if (f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS && measurementValues[f.id]) {
-        return `${f.name}: ${measurementValues[f.id]}`;
+      if (f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS && measurementValues[f._id]) {
+        return `${f.name}: ${measurementValues[f._id]}`;
       }
       return f.name;
     });
     
-    // Mevcut manuel eklenen özellikleri koru
     const manualSpecs = specs.filter(spec => {
       const specName = spec.split(':')[0].trim();
       return !availableFeatures.some(f => f.name === specName);
@@ -274,7 +395,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
 
   // Özellik seçim dialogunu aç
   const handleOpenFeatureSelection = () => {
-    refreshFeatures();
+    loadFeaturesFromAPI();
     setShowFeatureSelection(true);
   };
 
@@ -296,39 +417,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
     }
   };
 
-  // Excel Import dialog'ları
-  const handleOpenExcelImport = () => {
-    setExcelImportOpen(true);
-  };
-
-  const handleCloseExcelImport = () => {
-    setExcelImportOpen(false);
-  };
-
-  // Kategori seçimi değiştiğinde
-  const handleCategoryChange = (event) => {
-    const selectedCategoryId = event.target.value;
-    setCategoryId(selectedCategoryId);
-    setSubcategoryId('');
-    setSubcategory('');
-    
-    const selectedCategory = categories.find(c => c._id === selectedCategoryId);
-    if (selectedCategory) {
-      setCategory(selectedCategory.name);
-    }
-  };
-
-  // Alt kategori seçimi değiştiğinde
-  const handleSubcategoryChange = (event) => {
-    const selectedSubcategoryId = event.target.value;
-    setSubcategoryId(selectedSubcategoryId);
-    
-    const selectedSubcategory = subcategories.find(s => s._id === selectedSubcategoryId);
-    if (selectedSubcategory) {
-      setSubcategory(selectedSubcategory.name);
-    }
-  };
-
   // Resim yükleme
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files).slice(0, 10 - images.length);
@@ -344,6 +432,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
       setImages(prev => [...prev, ...response.data.imageUrls]);
     } catch (err) {
       console.error('Yükleme başarısız:', err);
+      setError('Resim yüklenirken hata oluştu');
     } finally {
       setUploading(false);
     }
@@ -364,38 +453,257 @@ export default function ItemForm({ item, onSave, onCancel }) {
     setSpecs(specs.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     
-    // Fiyat değerini belirle
     const finalPrice = askForPrice ? 'Fiyat Alınız' : Number(price);
     
-    // Backend'in beklediği veri yapısı
-    const formData = {
-      barcode,
-      name,
-      description,
-      price: finalPrice,
-      category,
-      categoryId,
-      subcategory,
-      subcategoryId,
-      specs,
-      images
-    };
-
-    // Eğer update işlemiyse, ID'yi de ekle
-    if (item && item._id) {
-      formData._id = item._id;
+    let finalCategoryId = '';
+    let finalCategoryName = '';
+    
+    const levels = ['level4', 'level3', 'level2', 'level1', 'main'];
+    for (const level of levels) {
+      if (selectedCategories[level].id) {
+        finalCategoryId = selectedCategories[level].id;
+        finalCategoryName = selectedCategories[level].name;
+        break;
+      }
+    }
+    
+    if (!finalCategoryId) {
+      setError('Lütfen bir kategori seçin');
+      return;
     }
 
-    console.log('Gönderilen veri:', formData);
-    onSave(formData);
+    const formData = {
+      barcode: barcode.trim(),
+      name: name.trim(),
+      description: description.trim(),
+      price: finalPrice,
+      category: finalCategoryName,
+      categoryId: finalCategoryId,
+      specs: specs.filter(spec => spec.trim() !== ''),
+      images: images
+    };
+
+    if (item && item._id) {
+      formData.id = item._id;
+    }
+
+    try {
+      await onSave(formData);
+    } catch (err) {
+      console.error('❌ Ürün kaydetme hatası:', err);
+      setError(`Ürün kaydedilirken hata oluştu: ${err.message || 'Bilinmeyen hata'}`);
+    }
+  };
+
+  // Kategori seviye component'i
+  const CategoryLevelSelect = ({ level, categories, selectedCategory, onSelect, onClear, disabled, isMain = false }) => {
+    const levelNumber = isMain ? 0 : parseInt(level.replace('level', ''));
+    const levelColor = CATEGORY_LEVEL_COLORS[levelNumber];
+    
+    return (
+      <FormControl 
+        fullWidth 
+        size="medium"
+        disabled={disabled}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            backgroundColor: levelColor.bg,
+            borderColor: levelColor.border,
+          }
+        }}
+      >
+        <InputLabel 
+          shrink={!!selectedCategory.id}
+          sx={{
+            backgroundColor: 'white',
+            px: 1,
+            ml: -1,
+            transform: selectedCategory.id ? 'translate(14px, -6px) scale(0.75)' : 'translate(14px, 20px) scale(1)',
+          }}
+        >
+          {isMain ? '🏠 ANA KATEGORİ' : `Seviye ${levelNumber}`} {disabled ? '(Önce üst kategori seçin)' : ''}
+        </InputLabel>
+        <Select
+          value={selectedCategory.id}
+          label=""
+          onChange={(e) => {
+            const selected = categories.find(cat => cat._id === e.target.value);
+            if (selected) {
+              onSelect(selected);
+            }
+          }}
+          displayEmpty
+          renderValue={(selected) => {
+            if (!selected) {
+              return (
+                <Typography color={disabled ? "text.disabled" : "textSecondary"}>
+                  {disabled ? 'Önce üst kategori seçin' : (isMain ? 'ANA KATEGORİ seçin' : `Seviye ${levelNumber} seçin`)}
+                </Typography>
+              );
+            }
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Typography fontWeight="medium" color={levelColor.text}>
+                  {selectedCategory.name}
+                </Typography>
+                {!disabled && (
+                  <Chip 
+                    label={`${categories.length} kategori`} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: levelColor.border,
+                      color: 'white',
+                      fontSize: '0.7rem'
+                    }}
+                  />
+                )}
+              </Box>
+            );
+          }}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                maxHeight: 300,
+                borderRadius: 2,
+                mt: 1,
+              }
+            }
+          }}
+        >
+          <MenuItem value="" disabled>
+            <Typography color="textSecondary">
+              {disabled ? 'Önce üst kategori seçin' : (isMain ? 'ANA KATEGORİ seçin' : `Seviye ${levelNumber} seçin`)}
+            </Typography>
+          </MenuItem>
+          {categories.map((cat) => (
+            <MenuItem key={cat._id} value={cat._id}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {cat.name}
+                  </Typography>
+                  {cat.subcategories && cat.subcategories.length > 0 && (
+                    <Typography variant="caption" color="primary" sx={{ ml: 1 }}>
+                      ({cat.subcategories.length} alt kategori)
+                    </Typography>
+                  )}
+                </Box>
+                <NavigateNext sx={{ color: 'text.secondary' }} />
+              </Box>
+            </MenuItem>
+          ))}
+        </Select>
+        
+        {selectedCategory.id && !disabled && (
+          <FormHelperText>
+            <Button 
+              size="small" 
+              onClick={() => onClear(isMain ? 'main' : level)}
+              sx={{ 
+                color: 'error.main',
+                textTransform: 'none',
+                p: 0,
+                minWidth: 'auto'
+              }}
+            >
+              Seçimi temizle
+            </Button>
+          </FormHelperText>
+        )}
+      </FormControl>
+    );
+  };
+
+  // Kategori breadcrumb component'i
+  const CategoryBreadcrumb = () => {
+    const breadcrumbItems = [];
+    
+    if (selectedCategories.main.id) {
+      breadcrumbItems.push({
+        level: 0,
+        name: selectedCategories.main.name,
+        id: selectedCategories.main.id,
+        isMain: true
+      });
+    }
+    
+    for (let i = 1; i <= 4; i++) {
+      const levelKey = `level${i}`;
+      if (selectedCategories[levelKey].id) {
+        breadcrumbItems.push({
+          level: i,
+          name: selectedCategories[levelKey].name,
+          id: selectedCategories[levelKey].id,
+          isMain: false
+        });
+      }
+    }
+    
+    if (breadcrumbItems.length === 0) {
+      return null;
+    }
+    
+    return (
+      <Paper elevation={1} sx={{ p: 2, mb: 3, backgroundColor: 'grey.50' }}>
+        <Typography variant="subtitle2" fontWeight="bold" color="textSecondary" sx={{ mb: 1 }}>
+          📍 Seçili Kategori Yolu:
+        </Typography>
+        <Breadcrumbs separator="›" aria-label="category-breadcrumb">
+          {breadcrumbItems.map((item, index) => (
+            <Box
+              key={item.level}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 1,
+                backgroundColor: CATEGORY_LEVEL_COLORS[item.level].bg,
+                border: `1px solid ${CATEGORY_LEVEL_COLORS[item.level].border}`,
+                borderRadius: 2,
+                color: CATEGORY_LEVEL_COLORS[item.level].text,
+                fontWeight: 'medium'
+              }}
+            >
+              <Typography variant="body2" fontWeight="bold">
+                {item.isMain ? '🏠 ANA' : `S${item.level}`}
+              </Typography>
+              <Typography variant="body2">
+                {item.name}
+              </Typography>
+              {index === breadcrumbItems.length - 1 && (
+                <Chip 
+                  label="Seçili" 
+                  size="small" 
+                  sx={{ 
+                    backgroundColor: CATEGORY_LEVEL_COLORS[item.level].border,
+                    color: 'white',
+                    fontSize: '0.6rem',
+                    height: 20
+                  }}
+                />
+              )}
+            </Box>
+          ))}
+        </Breadcrumbs>
+      </Paper>
+    );
   };
 
   return (
     <>
       <Box component="form" onSubmit={handleSubmit} sx={{ p: isMobile ? 2 : 4 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
         {/* Temel Bilgiler Bölümü */}
         <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
@@ -403,7 +711,6 @@ export default function ItemForm({ item, onSave, onCancel }) {
           </Typography>
           
           <Grid container spacing={3}>
-            {/* Barkod */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -416,12 +723,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    width: '350px'
                   }
                 }}
               />
             </Grid>
 
-            {/* Ürün Adı */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -434,159 +741,78 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    width: '600px'
                   }
                 }}
               />
             </Grid>
 
-            {/* Kategori - ID bazlı seçim */}
-            <Grid item xs={12} md={4}>
-              <FormControl 
-                fullWidth 
-                size="medium"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
-                }}
-              >
-                <InputLabel 
-                  shrink={!!categoryId}
-                  sx={{
-                    backgroundColor: 'white',
-                    px: 1,
-                    ml: -1,
-                    transform: categoryId ? 'translate(14px, -6px) scale(0.75)' : 'translate(14px, 20px) scale(1)',
-                    '&.Mui-focused': {
-                      transform: 'translate(14px, -6px) scale(0.75)',
-                    }
-                  }}
-                >
-                  
-                </InputLabel>
-                <Select
-                  value={categoryId}
-                  label=""
-                  onChange={handleCategoryChange}
-                  required
-                  displayEmpty
-                  renderValue={(selected) => {
-                    if (!selected) {
-                      return <Typography color="textSecondary">Bir kategori seçin</Typography>;
-                    }
-                    const selectedCategory = categories.find(c => c._id === selected);
-                    return selectedCategory?.name || '';
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        maxHeight: 300,
-                        borderRadius: 2,
-                        mt: 1,
-                      }
-                    }
-                  }}
-                >
-                  <MenuItem value="" disabled>
-                    <Typography color="textSecondary">Bir kategori seçin</Typography>
-                  </MenuItem>
-                  {categories.map((cat) => (
-                    <MenuItem key={cat._id} value={cat._id}>
-                      <Box>
-                        <Typography variant="body1" fontWeight="medium">
-                          {cat.name}
-                        </Typography>
-                        {cat.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {cat.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-                {!categoryId && (
-                  <FormHelperText>Ürün için bir kategori seçin</FormHelperText>
-                )}
-              </FormControl>
-            </Grid>
+            {/* Kategori Seçimi - ANA KATEGORİ + 4 SEVİYE */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 2 }}>
+                🗂️ Kategori Seçimi (ANA KATEGORİ + 4 Seviye)
+                <p>Lütfen alt kategori içeren seviyede ürün eklemeyiniz. Bir seviye içinde hem ürün hem alt kategori bulunamaz.</p>
+              </Typography>
+              
+              <CategoryBreadcrumb />
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <CategoryLevelSelect
+                    level="main"
+                    categories={availableSubcategories.main}
+                    selectedCategory={selectedCategories.main}
+                    onSelect={(category) => handleCategorySelect('main', category)}
+                    onClear={handleClearCategory}
+                    disabled={false}
+                    isMain={true}
+                  />
+                </Grid>
 
-            {/* Alt Kategori - ID bazlı seçim */}
-            <Grid item xs={12} md={4}>
-              <FormControl 
-                fullWidth 
-                size="medium"
-                disabled={!categoryId}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
-                }}
-              >
-                <InputLabel 
-                  shrink={!!subcategoryId}
-                  sx={{
-                    backgroundColor: 'white',
-                    px: 1,
-                    ml: -1,
-                    transform: subcategoryId ? 'translate(14px, -6px) scale(0.75)' : 'translate(14px, 20px) scale(1)',
-                    '&.Mui-focused': {
-                      transform: 'translate(14px, -6px) scale(0.75)',
-                    }
-                  }}
-                >
-                  
-                </InputLabel>
-                <Select
-                  value={subcategoryId}
-                  label=""
-                  onChange={handleSubcategoryChange}
-                  displayEmpty
-                  renderValue={(selected) => {
-                    if (!selected) {
-                      return (
-                        <Typography color={categoryId ? "textSecondary" : "text.disabled"}>
-                          {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
-                        </Typography>
-                      );
-                    }
-                    const selectedSubcategory = subcategories.find(s => s._id === selected);
-                    return selectedSubcategory?.name || '';
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        maxHeight: 300,
-                        borderRadius: 2,
-                        mt: 1,
-                      }
-                    }
-                  }}
-                >
-                  <MenuItem value="" disabled>
-                    <Typography color="textSecondary">
-                      {categoryId ? 'Bir alt kategori seçin' : 'Önce kategori seçin'}
-                    </Typography>
-                  </MenuItem>
-                  {subcategories.map((subcat) => (
-                    <MenuItem key={subcat._id} value={subcat._id}>
-                      <Box>
-                        <Typography variant="body1" fontWeight="medium">
-                          {subcat.name}
-                        </Typography>
-                        {subcat.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {subcat.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-                {categoryId && !subcategoryId && (
-                  <FormHelperText>İsteğe bağlı olarak bir alt kategori seçin</FormHelperText>
-                )}
-              </FormControl>
+                <Grid item xs={12} sm={6} md={2}>
+                  <CategoryLevelSelect
+                    level="level1"
+                    categories={availableSubcategories.level1}
+                    selectedCategory={selectedCategories.level1}
+                    onSelect={(category) => handleCategorySelect('level1', category)}
+                    onClear={handleClearCategory}
+                    disabled={!selectedCategories.main.id}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={2}>
+                  <CategoryLevelSelect
+                    level="level2"
+                    categories={availableSubcategories.level2}
+                    selectedCategory={selectedCategories.level2}
+                    onSelect={(category) => handleCategorySelect('level2', category)}
+                    onClear={handleClearCategory}
+                    disabled={!selectedCategories.level1.id}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={2}>
+                  <CategoryLevelSelect
+                    level="level3"
+                    categories={availableSubcategories.level3}
+                    selectedCategory={selectedCategories.level3}
+                    onSelect={(category) => handleCategorySelect('level3', category)}
+                    onClear={handleClearCategory}
+                    disabled={!selectedCategories.level2.id}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <CategoryLevelSelect
+                    level="level4"
+                    categories={availableSubcategories.level4}
+                    selectedCategory={selectedCategories.level4}
+                    onSelect={(category) => handleCategorySelect('level4', category)}
+                    onClear={handleClearCategory}
+                    disabled={!selectedCategories.level3.id}
+                  />
+                </Grid>
+              </Grid>
             </Grid>
 
             {/* Fiyat ve Fiyat Alınız */}
@@ -603,17 +829,12 @@ export default function ItemForm({ item, onSave, onCancel }) {
                   disabled={askForPrice}
                   InputProps={{
                     endAdornment: !askForPrice ? <Typography sx={{ ml: 1 }}>₺</Typography> : null,
-                    inputProps: { min: 0, step: 0.01 },
                   }}
                   size="medium"
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
                     },
-                    '& .MuiInputBase-input.Mui-disabled': {
-                      WebkitTextFillColor: '#d32f2f',
-                      fontWeight: 'bold'
-                    }
                   }}
                 />
                 <FormControlLabel
@@ -625,21 +846,8 @@ export default function ItemForm({ item, onSave, onCancel }) {
                     />
                   }
                   label="Fiyat Alınız"
-                  sx={{ 
-                    whiteSpace: 'nowrap',
-                    mt: 1,
-                    '& .MuiFormControlLabel-label': {
-                      fontWeight: askForPrice ? 'bold' : 'normal',
-                      color: askForPrice ? '#d32f2f' : 'inherit'
-                    }
-                  }}
                 />
               </Box>
-              {askForPrice && (
-                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                  Bu ürün için fiyat bilgisi "Fiyat Alınız" olarak kaydedilecektir.
-                </Typography>
-              )}
             </Grid>
 
             {/* Açıklama */}
@@ -656,6 +864,7 @@ export default function ItemForm({ item, onSave, onCancel }) {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    width: '600px'
                   }
                 }}
               />
@@ -670,14 +879,20 @@ export default function ItemForm({ item, onSave, onCancel }) {
               Özellikler
             </Typography>
             
-            {/* Buton her zaman görünsün, sadece özellik yoksa disabled olsun */}
             <Button
               variant="outlined"
               onClick={handleOpenFeatureSelection}
-              disabled={availableFeatures.length === 0}
+              disabled={loadingFeatures}
               sx={{ borderRadius: 2 }}
             >
-              Özellik Seç ({availableFeatures.length})
+              {loadingFeatures ? (
+                <>
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                  Yükleniyor...
+                </>
+              ) : (
+                `Özellik Seç (${availableFeatures.length})`
+              )}
             </Button>
           </Box>
           
@@ -729,605 +944,213 @@ export default function ItemForm({ item, onSave, onCancel }) {
             </Grid>
             <Grid item xs={12} sm={4} md={3}>
               <Button
-                onClick={handleAddSpec}
-                variant="contained"
-                startIcon={<Add />}
-                disabled={!newSpec.trim()}
                 fullWidth
-                size="large"
+                variant="contained"
+                onClick={handleAddSpec}
+                disabled={!newSpec.trim()}
                 sx={{ 
-                  height: '56px',
                   borderRadius: 2,
-                  fontWeight: 'bold'
+                  height: '56px'
                 }}
               >
+                <Add sx={{ mr: 1 }} />
                 Ekle
               </Button>
             </Grid>
           </Grid>
-
-          {/* Bilgi mesajı */}
-          {availableFeatures.length === 0 && (
-            <Typography variant="caption" color="textSecondary" sx={{ mt: 2, display: 'block' }}>
-              Özellik seçmek için önce "Özellik Ayarları" sayfasından özellik ekleyin.
-            </Typography>
-          )}
         </Paper>
 
-        {/* Ürün Resimleri Bölümü */}
+        {/* Resimler Bölümü */}
         <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-            Ürün Resimleri ({images.length}/10)
+            Resimler
           </Typography>
-
-          {images.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Grid container spacing={2}>
-                {images.map((img, index) => (
-                  <Grid item xs={6} sm={4} md={3} key={index}>
-                    <Box sx={{ position: 'relative' }}>
-                      <Avatar
-                        src={img}
-                        sx={{ 
-                          width: '100%', 
-                          height: 150,
-                          borderRadius: 2,
-                          boxShadow: 2
-                        }}
-                        variant="rounded"
-                      />
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveImage(index)}
-                        sx={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          backgroundColor: 'rgba(0,0,0,0.5)',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'rgba(0,0,0,0.7)'
-                          }
-                        }}
-                      >
-                        <Close fontSize="small" />
-                      </IconButton>
-                      <Typography 
-                        variant="caption" 
-                        sx={{
-                          position: 'absolute',
-                          bottom: 8,
-                          left: 8,
-                          backgroundColor: 'rgba(0,0,0,0.5)',
-                          color: 'white',
-                          px: 1,
-                          borderRadius: 1,
-                          fontSize: '0.7rem'
-                        }}
-                      >
-                        Resim {index + 1}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
+          
+          <Box sx={{ mb: 3 }}>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<CloudUpload />}
+              disabled={uploading || images.length >= 10}
+              sx={{ borderRadius: 2 }}
+            >
+              {uploading ? 'Yükleniyor...' : 'Resim Yükle (Max 10)'}
+              <Input
+                type="file"
+                inputProps={{ 
+                  accept: 'image/*',
+                  multiple: true
+                }}
+                onChange={handleImageUpload}
+                sx={{ display: 'none' }}
+              />
+            </Button>
+            <Typography variant="caption" color="textSecondary" sx={{ ml: 2 }}>
+              {images.length}/10 resim yüklendi
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={2}>
+            {images.map((image, index) => (
+              <Grid item xs={6} sm={4} md={3} key={index}>
+                <Box sx={{ position: 'relative' }}>
+                  <Avatar
+                    variant="rounded"
+                    src={image}
+                    sx={{ 
+                      width: '100%', 
+                      height: 120,
+                      borderRadius: 2
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveImage(index)}
+                    sx={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                      }
+                    }}
+                  >
+                    <Close fontSize="small" />
+                  </IconButton>
+                </Box>
               </Grid>
-            </Box>
-          )}
-
-          <Button
-            component="label"
-            variant="outlined"
-            startIcon={<CloudUpload />}
-            disabled={images.length >= 10 || uploading}
-            fullWidth
-            size="large"
-            sx={{ 
-              py: 2,
-              borderRadius: 2,
-              borderStyle: 'dashed',
-              borderWidth: 2
-            }}
-          >
-            {uploading ? (
-              <>
-                <CircularProgress size={20} sx={{ mr: 1 }} />
-                Yükleniyor...
-              </>
-            ) : (
-              'Resim Ekle'
-            )}
-            <Input
-              type="file"
-              hidden
-              onChange={handleImageUpload}
-              accept="image/*"
-              multiple
-              disabled={images.length >= 10 || uploading}
-            />
-          </Button>
-          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary' }}>
-            {images.length < 10 
-              ? `${10 - images.length} resim daha ekleyebilirsiniz` 
-              : 'Maksimum 10 resim sınırına ulaşıldı'}
-          </Typography>
+            ))}
+          </Grid>
         </Paper>
 
-        {/* Form İşlemleri */}
+   
+
+        {/* İşlem Butonları */}
         <Box sx={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mt: 4,
-          p: 3,
-          bgcolor: 'grey.50',
-          borderRadius: 2,
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? 2 : 0
+          justifyContent: 'space-between',
+          gap: 2,
+          flexDirection: isMobile ? 'column' : 'row'
         }}>
-          <ButtonGroup sx={{ order: isMobile ? 2 : 1 }}>
-            <Button 
-              onClick={onCancel} 
-              variant="outlined" 
-              size="large"
-              sx={{ 
-                width: 120,
-                borderRadius: 2
-              }}
-            >
+          <Button
+            variant="outlined"
+            onClick={onCancel}
+            sx={{ 
+              borderRadius: 2,
+              flex: isMobile ? 1 : 'none'
+            }}
+          >
+            İptal
+          </Button>
+          
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{ 
+              borderRadius: 2,
+              minWidth: 120,
+              flex: isMobile ? 1 : 'none'
+            }}
+          >
+            {item ? 'Güncelle' : 'Oluştur'}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Özellik Seçim Dialog'u */}
+      <Dialog 
+        open={showFeatureSelection} 
+        onClose={() => setShowFeatureSelection(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div">
+            Özellik Seçimi
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          <Tabs value={featureTabValue} onChange={handleFeatureTabChange} sx={{ mb: 3 }}>
+            <Tab label="Kullanım Alanları" />
+            <Tab label="Ürün Ölçüleri" />
+            <Tab label="Ürün Özellikleri" />
+          </Tabs>
+          
+          {loadingFeatures ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {availableFeatures
+                .filter(feature => {
+                  if (featureTabValue === 0) return feature.type === FEATURE_TYPES.USAGE_AREA;
+                  if (featureTabValue === 1) return feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS;
+                  if (featureTabValue === 2) return feature.type === FEATURE_TYPES.PRODUCT_PROPERTIES;
+                  return true;
+                })
+                .map(feature => (
+                  <Grid item xs={12} sm={6} md={4} key={feature._id}>
+                    <Paper
+                      elevation={selectedFeatures.find(f => f._id === feature._id) ? 3 : 1}
+                      sx={{
+                        p: 2,
+                        cursor: 'pointer',
+                        border: selectedFeatures.find(f => f._id === feature._id) ? 2 : 1,
+                        borderColor: selectedFeatures.find(f => f._id === feature._id) ? 'primary.main' : 'divider',
+                        backgroundColor: selectedFeatures.find(f => f._id === feature._id) ? 'white' : 'background.paper',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: selectedFeatures.find(f => f._id === feature._id) ? 'white' : 'grey.50',
+                        }
+                      }}
+                      onClick={() => handleFeatureToggle(feature)}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body1" fontWeight="medium">
+                          {feature.name}
+                        </Typography>
+                        <Checkbox
+                          checked={!!selectedFeatures.find(f => f._id === feature._id)}
+                          color="primary"
+                          sx={{ ml: 1 }}
+                        />
+                      </Box>
+                      
+                      {feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS && 
+                       selectedFeatures.find(f => f._id === feature._id) && (
+                        <TextField
+                          fullWidth
+                          size="small"
+                          placeholder={`${feature.name} değeri`}
+                          value={measurementValues[feature._id] || ''}
+                          onChange={(e) => handleMeasurementValueChange(feature._id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{ mt: 1 }}
+                        />
+                      )}
+                    </Paper>
+                  </Grid>
+                ))
+              }
+            </Grid>
+          )}
+          
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Button onClick={() => setShowFeatureSelection(false)}>
               İptal
             </Button>
             <Button 
-              type="submit" 
               variant="contained" 
-              color="primary"
-              size="large"
-              sx={{ 
-                width: 160,
-                borderRadius: 2,
-                fontWeight: 'bold'
-              }}
-              disabled={!categoryId}
+              onClick={applySelectedFeatures}
+              disabled={loadingFeatures}
             >
-              {item ? 'Ürünü Güncelle' : 'Ürünü Kaydet'}
+              Seçilenleri Uygula ({selectedFeatures.length})
             </Button>
-          </ButtonGroup>
-
-          {/* Excel Import Butonu */}
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<ImportExport />}
-            onClick={handleOpenExcelImport}
-            size="large"
-            sx={{ 
-              order: isMobile ? 1 : 2,
-              borderWidth: 2,
-              borderRadius: 2,
-              fontWeight: 'bold',
-              '&:hover': {
-                borderWidth: 2
-              }
-            }}
-          >
-            Excel Import
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Özellik Seçim Dialog */}
-     {/* Özellik Seçim Dialog */}
-<Dialog
-  open={showFeatureSelection}
-  onClose={() => setShowFeatureSelection(false)}
-  maxWidth="xl"
-  fullWidth
-  sx={{
-    '& .MuiDialog-paper': {
-      maxHeight: '85vh',
-      borderRadius: 2
-    }
-  }}
->
-  <DialogTitle sx={{ 
-    backgroundColor: 'primary.main',
-    color: 'white',
-    m: 0,
-    p: 3,
-    borderRadius: '8px 8px 0 0'
-  }}>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <Typography variant="h6" component="div" fontWeight="bold">
-        🎯 Özellik Seçimi
-      </Typography>
-      <IconButton
-        aria-label="close"
-        onClick={() => setShowFeatureSelection(false)}
-        sx={{ color: 'white' }}
-      >
-        <Close />
-      </IconButton>
-    </Box>
-  </DialogTitle>
-  
-  <DialogContent sx={{ p: 3 }}>
-    {/* Bilgi Kartı */}
-    <Paper elevation={1} sx={{ p: 2, mb: 3, backgroundColor: 'info.light', color: 'info.contrastText' }}>
-      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        💡 <strong>Kullanım Kılavuzu:</strong> 
-        Kullanım Alanları ve Ürün Özellikleri checkbox ile seçilir. 
-        Ürün Ölçüleri seçildiğinde değer girişi yapılabilir.
-      </Typography>
-    </Paper>
-
-    <Tabs 
-      value={featureTabValue} 
-      onChange={handleFeatureTabChange}
-      sx={{ 
-        mb: 3,
-        '& .MuiTab-root': { 
-          fontWeight: 'bold',
-          fontSize: '0.9rem'
-        }
-      }}
-      variant="fullWidth"
-    >
-      <Tab 
-        label={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>🏠 Kullanım Alanları</span>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length} 
-              size="small" 
-              color="primary"
-            />
           </Box>
-        } 
-      />
-      <Tab 
-        label={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>📏 Ürün Ölçüleri</span>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length} 
-              size="small" 
-              color="secondary"
-            />
-          </Box>
-        } 
-      />
-      <Tab 
-        label={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>⚡ Ürün Özellikleri</span>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length} 
-              size="small" 
-              color="warning"
-            />
-          </Box>
-        } 
-      />
-    </Tabs>
-
-    <Grid container spacing={3}>
-      {/* Kullanım Alanları */}
-      <Grid item xs={12} md={4}>
-        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'primary.light' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="primary.main">
-              🏠 Kullanım Alanları
-            </Typography>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length} 
-              size="small" 
-              color="primary"
-            />
-          </Box>
-          
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Ürünün kullanılabileceği alanlar (örn: Mutfak, Banyo, Ofis)
-          </Typography>
-
-          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
-            {availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).length > 0 ? (
-              availableFeatures.filter(f => f.type === FEATURE_TYPES.USAGE_AREA).map((feature) => (
-                <Paper 
-                  key={feature.id} 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1.5, 
-                    mb: 1, 
-                    border: 1,
-                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'primary.main' : 'grey.300',
-                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'primary.50' : 'white'
-                  }}
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedFeatures.some(f => f.id === feature.id)}
-                        onChange={() => handleFeatureToggle(feature)}
-                        color="primary"
-                      />
-                    }
-                    label={
-                      <Box sx={{ width: '100%' }}>
-                        <Typography variant="body1" fontWeight="medium">
-                          {feature.name}
-                        </Typography>
-                        {feature.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {feature.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                    sx={{ width: '100%', m: 0 }}
-                  />
-                </Paper>
-              ))
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Henüz kullanım alanı eklenmemiş
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Özellik Ayarları sayfasından ekleyin
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </Paper>
-      </Grid>
-
-      {/* Ürün Ölçüleri */}
-      <Grid item xs={12} md={4}>
-        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'secondary.light' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="secondary.main">
-              📏 Ürün Ölçüleri
-            </Typography>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length} 
-              size="small" 
-              color="secondary"
-            />
-          </Box>
-          
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Ölçülebilir değerler (seçildiğinde değer girişi yapılır)
-          </Typography>
-
-          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
-            {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).length > 0 ? (
-              availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS).map((feature) => (
-                <Paper 
-                  key={feature.id} 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1.5, 
-                    mb: 1, 
-                    border: 1,
-                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'secondary.main' : 'grey.300',
-                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'secondary.50' : 'white'
-                  }}
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedFeatures.some(f => f.id === feature.id)}
-                        onChange={() => handleFeatureToggle(feature)}
-                        color="secondary"
-                      />
-                    }
-                    label={
-                      <Box sx={{ width: '100%' }}>
-                        <Typography variant="body1" fontWeight="medium">
-                          {feature.name}
-                        </Typography>
-                        {feature.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {feature.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                    sx={{ width: '100%', m: 0, mb: 1 }}
-                  />
-                  
-                  {selectedFeatures.some(f => f.id === feature.id) && (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder={`${feature.name} değerini girin (örn: 120cm, 15kg)`}
-                      value={measurementValues[feature.id] || ''}
-                      onChange={(e) => handleMeasurementValueChange(feature.id, e.target.value)}
-                      sx={{ mt: 1 }}
-                      InputProps={{
-                        startAdornment: <Typography variant="caption" sx={{ mr: 1 }}>📝</Typography>
-                      }}
-                    />
-                  )}
-                </Paper>
-              ))
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Henüz ürün ölçüsü eklenmemiş
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Özellik Ayarları sayfasından ekleyin
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </Paper>
-      </Grid>
-
-      {/* Ürün Özellikleri */}
-      <Grid item xs={12} md={4}>
-        <Paper elevation={2} sx={{ p: 2, height: '100%', border: 2, borderColor: 'warning.light' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="warning.main">
-              ⚡ Ürün Özellikleri
-            </Typography>
-            <Chip 
-              label={availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length} 
-              size="small" 
-              color="warning"
-            />
-          </Box>
-          
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Ürünün teknik ve fiziksel özellikleri
-          </Typography>
-
-          <Box sx={{ maxHeight: 350, overflow: 'auto', p: 1 }}>
-            {availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).length > 0 ? (
-              availableFeatures.filter(f => f.type === FEATURE_TYPES.PRODUCT_PROPERTIES).map((feature) => (
-                <Paper 
-                  key={feature.id} 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1.5, 
-                    mb: 1, 
-                    border: 1,
-                    borderColor: selectedFeatures.some(f => f.id === feature.id) ? 'warning.main' : 'grey.300',
-                    backgroundColor: selectedFeatures.some(f => f.id === feature.id) ? 'warning.50' : 'white'
-                  }}
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedFeatures.some(f => f.id === feature.id)}
-                        onChange={() => handleFeatureToggle(feature)}
-                        color="warning"
-                      />
-                    }
-                    label={
-                      <Box sx={{ width: '100%' }}>
-                        <Typography variant="body1" fontWeight="medium">
-                          {feature.name}
-                        </Typography>
-                        {feature.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {feature.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                    sx={{ width: '100%', m: 0 }}
-                  />
-                </Paper>
-              ))
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Henüz ürün özelliği eklenmemiş
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Özellik Ayarları sayfasından ekleyin
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </Paper>
-      </Grid>
-    </Grid>
-
-    {/* Seçili Özellikler Özeti */}
-    {selectedFeatures.length > 0 && (
-      <Paper elevation={2} sx={{ p: 2, mt: 3, backgroundColor: 'success.50', border: 1, borderColor: 'success.light' }}>
-        <Typography variant="subtitle1" fontWeight="bold" color="success.main" sx={{ mb: 1 }}>
-          ✅ Seçili Özellikler ({selectedFeatures.length})
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {selectedFeatures.map((feature) => (
-            <Chip
-              key={feature.id}
-              label={
-                feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS && measurementValues[feature.id]
-                  ? `${feature.name}: ${measurementValues[feature.id]}`
-                  : feature.name
-              }
-              size="small"
-              color={
-                feature.type === FEATURE_TYPES.USAGE_AREA ? 'primary' :
-                feature.type === FEATURE_TYPES.PRODUCT_MEASUREMENTS ? 'secondary' : 'warning'
-              }
-              variant="outlined"
-            />
-          ))}
-        </Box>
-      </Paper>
-    )}
-    
-    {/* Action Butonları */}
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-      <Typography variant="body2" color="textSecondary">
-        Toplam {availableFeatures.length} özellik mevcut
-      </Typography>
-      
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button 
-          onClick={() => setShowFeatureSelection(false)} 
-          variant="outlined"
-          size="large"
-        >
-          İptal
-        </Button>
-        <Button 
-          onClick={applySelectedFeatures} 
-          variant="contained" 
-          size="large"
-          disabled={selectedFeatures.length === 0}
-          sx={{ minWidth: 200 }}
-        >
-          🎯 Seçilenleri Ekle ({selectedFeatures.length})
-        </Button>
-      </Box>
-    </Box>
-  </DialogContent>
-</Dialog>
-
-      {/* Excel Import Dialog */}
-      <Dialog
-        open={excelImportOpen}
-        onClose={handleCloseExcelImport}
-        maxWidth="lg"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            height: '90vh',
-            maxWidth: '1200px',
-            width: '95%',
-            borderRadius: 2
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          backgroundColor: 'primary.main',
-          color: 'white',
-          m: 0,
-          p: 2,
-          borderRadius: '8px 8px 0 0'
-        }}>
-          <Typography variant="h6" component="div" fontWeight="bold">
-            📊 Excel ile Toplu Ürün İşlemleri
-          </Typography>
-          <IconButton
-            aria-label="close"
-            onClick={handleCloseExcelImport}
-            sx={{ color: 'white' }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
-          <ExcelImport onBack={handleCloseExcelImport} />
         </DialogContent>
       </Dialog>
     </>

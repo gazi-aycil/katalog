@@ -17,7 +17,7 @@ const imagekit = new ImageKit({
   urlEndpoint: 'https://ik.imagekit.io/4t0zibpdh/'
 });
 
-// CORS ayarlarını genişlet
+// CORS
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -29,23 +29,22 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Hata ayıklama middleware'leri
+// Debug logger
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
 
-// Uploads klasörünü kontrol et ve oluştur
+// Upload dirs
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for memory storage (resimler için)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Excel dosyaları için multer konfigürasyonu
+// Excel upload config
 const excelStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = 'uploads/';
@@ -55,13 +54,12 @@ const excelStorage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Türkçe karakterleri düzelt
     const originalname = file.originalname.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     cb(null, Date.now() + '-' + originalname);
   }
 });
 
-const uploadExcel = multer({ 
+const uploadExcel = multer({
   storage: excelStorage,
   fileFilter: function (req, file, cb) {
     const filetypes = /xlsx|xls|csv/;
@@ -81,11 +79,10 @@ const uploadExcel = multer({
     }
   },
   limits: {
-    fileSize: 20 * 1024 * 1024 // 20MB limit
+    fileSize: 20 * 1024 * 1024
   }
 });
 
-// Multer hata yönetimi
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -95,7 +92,7 @@ app.use((error, req, res, next) => {
   next(error);
 });
 
-// Connect to MongoDB
+// MongoDB
 mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/ravinzo?retryWrites=true&w=majority&appName=catalog-app&', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -111,14 +108,18 @@ mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.m
   process.exit(1);
 });
 
-// Schemas
+// SCHEMAS - Tüm seviyelere ID desteği
+const subcategorySchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+  name: { type: String, required: true },
+  imageUrl: String,
+  subcategories: { type: [mongoose.Schema.Types.Mixed], default: [] }
+}, { timestamps: false, _id: true });
+
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true },
-  subcategories: [{
-    name: { type: String, required: true },
-    imageUrl: String
-  }],
-  imageUrl: String
+  imageUrl: String,
+  subcategories: { type: [subcategorySchema], default: [] }
 }, { timestamps: true });
 
 const itemSchema = new mongoose.Schema({
@@ -129,340 +130,261 @@ const itemSchema = new mongoose.Schema({
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subcategory: String,
   subcategoryId: { type: mongoose.Schema.Types.ObjectId },
-  price: { type: mongoose.Schema.Types.Mixed, required: true }, // Mixed type for both number and string
+  price: { type: mongoose.Schema.Types.Mixed, required: true },
   specs: [String],
   images: [String],
 }, { timestamps: true });
 
-// Models
+// Features Schema
+const featureSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: String,
+  type: { 
+    type: String, 
+    required: true,
+    enum: ['usage_area', 'product_measurements', 'product_properties']
+  },
+  hasValue: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+featureSchema.index({ name: 1, type: 1 }, { unique: true });
+
 const Category = mongoose.model('Category', categorySchema);
 const Item = mongoose.model('Item', itemSchema);
+const Feature = mongoose.model('Feature', featureSchema);
 
-// Create indexes
 itemSchema.index({ category: 1, subcategory: 1 });
 itemSchema.index({ categoryId: 1, subcategoryId: 1 });
 categorySchema.index({ name: 1 });
 
-// Debug Endpoints
-app.get('/api/debug/categories', async (req, res) => {
-  try {
-    const categories = await Category.find();
-    res.json({
-      count: categories.length,
-      categories: categories
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+// HELPERS - Tüm seviyelerde ObjectId formatında ID desteği
+function findSubcategoryById(categoryDoc, subcategoryId) {
+  if (!subcategoryId) return null;
+  
+  // Gelen ID'yi string formatına çevir
+  let searchId;
+  if (typeof subcategoryId === 'string') {
+    searchId = subcategoryId;
+  } else if (subcategoryId instanceof mongoose.Types.ObjectId) {
+    searchId = subcategoryId.toString();
+  } else {
+    searchId = subcategoryId.toString();
   }
-});
-
-app.get('/api/debug/items', async (req, res) => {
-  try {
-    const items = await Item.find();
-    res.json({
-      count: items.length,
-      items: items
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// API Endpoints
-
-// ITEM ENDPOINTS
-app.get('/api/items', async (req, res) => {
-  try {
-    const items = await Item.find().sort({ createdAt: -1 });
-    res.json(items);
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Failed to fetch items',
-      error: err.message 
-    });
-  }
-});
-
-app.get('/api/items/:id', async (req, res) => {
-  try {
-    const item = await Item.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-    res.json(item);
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Failed to fetch item',
-      error: err.message 
-    });
-  }
-});
-
-// Özel fiyat validasyon fonksiyonu
-const validatePrice = (value) => {
-  if (value === 'Fiyat Alınız') return true;
-  if (typeof value === 'number' && value >= 0) return true;
-  if (typeof value === 'string' && !isNaN(parseFloat(value)) && parseFloat(value) >= 0) return true;
-  throw new Error('Geçerli bir fiyat girin veya "Fiyat Alınız" seçin');
-};
-
-app.post('/api/items', 
-  [
-    body('barcode').trim().notEmpty().withMessage("Barkod Eklemeden Kayıt yapılamaz"),
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('category').trim().notEmpty().withMessage('Category is required'),
-    body('categoryId').isMongoId().withMessage('Valid category ID is required'),
-    body('price').custom(validatePrice).withMessage('Valid price is required'),
-    body('specs').optional().isArray(),
-    body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
-    body('images').optional().isArray(),
-    body('subcategoryId').optional().isMongoId().withMessage('Valid subcategory ID is required')
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      console.log('Yeni ürün ekleniyor:', req.body);
-
-      // Kategoriyi doğrula
-      const category = await Category.findById(req.body.categoryId);
-      if (!category) {
-        return res.status(400).json({ 
-          message: 'Geçersiz kategori ID' 
-        });
-      }
-
-      // Alt kategoriyi doğrula (eğer varsa)
-      let subcategoryName = null;
-      if (req.body.subcategoryId) {
-        const subcategory = category.subcategories.id(req.body.subcategoryId);
-        if (!subcategory) {
-          return res.status(400).json({ 
-            message: 'Geçersiz alt kategori ID' 
-          });
+  
+  function searchRecursive(nodes) {
+    if (!Array.isArray(nodes)) return null;
+    
+    for (const node of nodes) {
+      if (!node) continue;
+      
+      // ID kontrolü - node._id ObjectId olabilir
+      if (node._id) {
+        const nodeIdStr = node._id.toString();
+        if (nodeIdStr === searchId) {
+          return node;
         }
-        subcategoryName = subcategory.name;
       }
-
-      // Fiyat değerini işle
-      let finalPrice;
-      if (req.body.price === 'Fiyat Alınız') {
-        finalPrice = 'Fiyat Alınız';
-      } else {
-        finalPrice = typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price;
-      }
-
-      // Ürün verilerini hazırla
-      const itemData = {
-        barcode: req.body.barcode,
-        name: req.body.name,
-        description: req.body.description || '',
-        category: category.name,
-        categoryId: req.body.categoryId,
-        subcategory: subcategoryName,
-        subcategoryId: req.body.subcategoryId || null,
-        price: finalPrice,
-        specs: req.body.specs || [],
-        images: req.body.images || []
-      };
-
-      console.log('Ürün verisi hazır:', itemData);
-
-      const newItem = new Item(itemData);
-      const savedItem = await newItem.save();
       
-      console.log('Ürün başarıyla kaydedildi:', savedItem);
-      res.status(201).json(savedItem);
-    } catch (err) {
-      console.error('Ürün oluşturma hatası:', err);
-      res.status(400).json({ 
-        message: 'Failed to create item',
-        error: err.message 
-      });
+      // Alt kategorilerde recursive arama
+      if (node.subcategories && node.subcategories.length > 0) {
+        const found = searchRecursive(node.subcategories);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  
+  return searchRecursive(categoryDoc.subcategories);
+}
+
+function findAllSubcategories(categoryDoc) {
+  const allSubcategories = [];
+  
+  function collectRecursive(nodes) {
+    if (!Array.isArray(nodes)) return;
+    
+    for (const node of nodes) {
+      if (!node) continue;
+      
+      // Mevcut node'u ekle
+      allSubcategories.push(node);
+      
+      // Alt kategorileri recursive topla
+      if (node.subcategories && node.subcategories.length > 0) {
+        collectRecursive(node.subcategories);
+      }
     }
   }
-);
+  
+  collectRecursive(categoryDoc.subcategories);
+  return allSubcategories;
+}
 
-app.put('/api/items/:id', 
-  [
-    body('barcode').trim().notEmpty().withMessage("Barkod Eklemeden Kayıt Yapılamaz"),
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('category').trim().notEmpty().withMessage('Category is required'),
-    body('categoryId').isMongoId().withMessage('Valid category ID is required'),
-    body('price').custom(validatePrice).withMessage('Valid price is required'),
-    body('specs').optional().isArray(),
-    body('specs.*').trim().notEmpty().withMessage('Specification cannot be empty'),
-    body('images').optional().isArray(),
-    body('subcategoryId').optional().isMongoId().withMessage('Valid subcategory ID is required')
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+function removeSubcategoryById(categoryDoc, subcategoryId) {
+  if (!subcategoryId) return false;
+  
+  // Gelen ID'yi string formatına çevir
+  let searchId;
+  if (typeof subcategoryId === 'string') {
+    searchId = subcategoryId;
+  } else {
+    searchId = subcategoryId.toString();
+  }
 
-    try {
-      console.log('Ürün güncelleniyor:', req.params.id, req.body);
-
-      // Kategori doğrulama
-      const category = await Category.findById(req.body.categoryId);
-      if (!category) {
-        return res.status(400).json({ 
-          message: 'Geçersiz kategori ID' 
-        });
+  function recurse(arr) {
+    if (!Array.isArray(arr)) return false;
+    
+    for (let i = 0; i < arr.length; i++) {
+      const node = arr[i];
+      if (!node) continue;
+      
+      if (node._id && node._id.toString() === searchId) {
+        arr.splice(i, 1);
+        return true;
       }
+      
+      if (node.subcategories && node.subcategories.length) {
+        const removed = recurse(node.subcategories);
+        if (removed) return true;
+      }
+    }
+    return false;
+  }
+  
+  return recurse(categoryDoc.subcategories);
+}
 
-      // Alt kategori doğrulama
-      let subcategoryName = null;
-      if (req.body.subcategoryId) {
-        const subcategory = category.subcategories.id(req.body.subcategoryId);
-        if (!subcategory) {
-          return res.status(400).json({ 
-            message: 'Geçersiz alt kategori ID' 
-          });
+// YARDIMCI: Tüm subcategory'lere ObjectId formatında ID ata (yoksa)
+function ensureSubcategoryIds(categoryData) {
+  if (!categoryData.subcategories) return categoryData;
+  
+  function addIdsRecursive(subcategories) {
+    return subcategories.map(subcat => {
+      // Eğer _id string olarak geliyorsa ObjectId'ye çevir, yoksa yeni oluştur
+      let subcatId;
+      if (subcat._id) {
+        if (typeof subcat._id === 'string') {
+          subcatId = new mongoose.Types.ObjectId(subcat._id);
+        } else {
+          subcatId = subcat._id;
         }
-        subcategoryName = subcategory.name;
-      }
-
-      // Fiyat değerini işle
-      let finalPrice;
-      if (req.body.price === 'Fiyat Alınız') {
-        finalPrice = 'Fiyat Alınız';
       } else {
-        finalPrice = typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price;
+        subcatId = new mongoose.Types.ObjectId();
       }
-
-      const updateData = {
-        barcode: req.body.barcode,
-        name: req.body.name,
-        description: req.body.description || '',
-        category: category.name,
-        categoryId: req.body.categoryId,
-        subcategory: subcategoryName,
-        subcategoryId: req.body.subcategoryId || null,
-        price: finalPrice,
-        specs: req.body.specs || [],
-        images: req.body.images || []
+      
+      return {
+        _id: subcatId,
+        name: subcat.name,
+        imageUrl: subcat.imageUrl,
+        subcategories: subcat.subcategories ? addIdsRecursive(subcat.subcategories) : []
       };
+    });
+  }
+  
+  return {
+    ...categoryData,
+    subcategories: addIdsRecursive(categoryData.subcategories)
+  };
+}
 
-      console.log('Güncelleme verisi:', updateData);
-
-      const updatedItem = await Item.findByIdAndUpdate(
-        req.params.id,
-        updateData,
-        { new: true, runValidators: true }
-      );
+// YARDIMCI: Herhangi bir seviyedeki kategoriyi ID ile bul
+function findCategoryById(categories, targetId) {
+  if (!targetId) return null;
+  
+  const searchId = typeof targetId === 'string' ? targetId : targetId.toString();
+  
+  function searchRecursive(cats) {
+    for (const cat of cats) {
+      if (!cat) continue;
       
-      if (!updatedItem) {
-        return res.status(404).json({ message: 'Item not found' });
+      // Mevcut kategoriyi kontrol et
+      if (cat._id && cat._id.toString() === searchId) {
+        return cat;
       }
       
-      res.json(updatedItem);
-    } catch (err) {
-      console.error('Ürün güncelleme hatası:', err);
-      res.status(400).json({ 
-        message: 'Failed to update item',
-        error: err.message 
-      });
+      // Alt kategorilerde ara
+      if (cat.subcategories && cat.subcategories.length > 0) {
+        const found = searchRecursive(cat.subcategories);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  
+  return searchRecursive(categories);
+}
+
+// YARDIMCI: Tüm alt kategorilerin ID'lerini topla (GÜNCELLENMİŞ)
+function getAllSubcategoryIds(category) {
+  const allIds = [];
+  
+  function collectIds(nodes) {
+    if (!Array.isArray(nodes)) return;
+    
+    for (const node of nodes) {
+      if (!node || !node._id) continue;
+      
+      // ID'yi ekle
+      allIds.push(node._id);
+      
+      // Alt kategorilerde recursive arama
+      if (node.subcategories && node.subcategories.length > 0) {
+        collectIds(node.subcategories);
+      }
     }
   }
-);
-
-app.delete('/api/items/:id', async (req, res) => {
-  try {
-    const deletedItem = await Item.findByIdAndDelete(req.params.id);
-    if (!deletedItem) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-    res.json({ message: 'Item deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Failed to delete item',
-      error: err.message 
-    });
+  
+  // Ana kategorinin alt kategorilerini topla
+  if (category.subcategories && category.subcategories.length > 0) {
+    collectIds(category.subcategories);
   }
-});
+  
+  return allIds;
+}
 
-// CATEGORY ENDPOINTS
-app.get('/api/categories', async (req, res) => {
+// YENİ VE GELİŞMİŞ ÜRÜN GETİRME ENDPOINT'LERİ
+app.get('/api/products/by-category/:categoryId', async (req, res) => {
   try {
-    const categories = await Category.find().lean();
-    res.json(categories);
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Kategoriler getirilirken hata oluştu',
-      error: err.message
-    });
-  }
-});
+    const { categoryId } = req.params;
+    const { includeSubcategories = 'true' } = req.query; // Varsayılan olarak true
+    
+    console.log('🔵 Ürün getirme isteği - Kategori:', categoryId, 'Alt Kategoriler Dahil:', includeSubcategories);
 
-app.get('/api/categories/:id', async (req, res) => {
-  try {
-    const category = await Category.findById(req.params.id);
+    // Kategoriyi bul
+    const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(404).json({ message: 'Kategori bulunamadı' });
     }
-    res.json(category);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
-app.post('/api/categories', async (req, res) => {
-  const newCategory = new Category(req.body);
-  try {
-    const savedCategory = await newCategory.save();
-    res.status(201).json(savedCategory);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-app.put('/api/categories/:id', async (req, res) => {
-  try {
-    const updatedCategory = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updatedCategory);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-app.delete('/api/categories/:id', async (req, res) => {
-  try {
-    await Category.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Category deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// ID BAZLI ÜRÜN ENDPOINT'LERİ
-app.get('/api/categories/:categoryId/products', async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const { subcategoryId } = req.query;
+    let products = [];
     
-    // Kategoriyi ID ile bul
-    const category = await Category.findById(categoryId);
-    
-    if (!category) {
-      return res.status(404).json({ 
-        message: `Kategori bulunamadı: ${categoryId}`,
-        products: []
-      });
-    }
-    
-    // Ürünleri filtrele
-    const query = { categoryId: new mongoose.Types.ObjectId(categoryId) };
-    
-    if (subcategoryId) {
-      query.subcategoryId = new mongoose.Types.ObjectId(subcategoryId);
+    if (includeSubcategories === 'true') {
+      // TÜM ALT KATEGORİLERİN ID'LERİNİ TOPLA (DERİN ARAMA)
+      const allSubcategoryIds = getAllSubcategoryIds(category);
+      const allCategoryIds = [new mongoose.Types.ObjectId(categoryId), ...allSubcategoryIds];
+      
+      console.log('🔍 Taranacak kategori IDleri:', allCategoryIds.length);
+      
+      // Tüm kategori ve alt kategorilerdeki ürünleri getir
+      products = await Item.find({
+        $or: [
+          { categoryId: { $in: allCategoryIds } },
+          { subcategoryId: { $in: allCategoryIds } }
+        ]
+      }).sort({ name: 1 });
+    } else {
+      // Sadece bu kategorideki ürünleri getir
+      products = await Item.find({
+        $or: [
+          { categoryId: new mongoose.Types.ObjectId(categoryId) },
+          { subcategoryId: new mongoose.Types.ObjectId(categoryId) }
+        ]
+      }).sort({ name: 1 });
     }
 
-    const products = await Item.find(query).select('-__v');
+    console.log('🟢 Bulunan ürün sayısı:', products.length);
     
     res.json({
       category: {
@@ -470,462 +392,812 @@ app.get('/api/categories/:categoryId/products', async (req, res) => {
         name: category.name,
         imageUrl: category.imageUrl
       },
-      subcategory: subcategoryId ? category.subcategories.id(subcategoryId) : null,
-      products: products
+      products: products,
+      totalProducts: products.length
     });
   } catch (err) {
-    res.status(500).json({ 
-      message: 'Ürünler getirilirken hata oluştu',
-      error: err.message 
-    });
+    console.error('🔴 Ürün getirme hatası:', err);
+    res.status(500).json({ message: err.message });
   }
 });
 
-// Veritabanındaki ürünleri güncellemek için endpoint
-app.post('/api/admin/update-product-references', async (req, res) => {
+// GELİŞMİŞ ALT KATEGORİ ÜRÜNLERİ ENDPOINT'İ
+app.get('/api/products/by-subcategory/:subcategoryId', async (req, res) => {
   try {
-    console.log('Ürün referansları güncelleniyor...');
+    const { subcategoryId } = req.params;
+    const { includeSubcategories = 'true' } = req.query;
     
-    // Tüm kategorileri al
+    console.log('🔵 Alt kategori ürünleri - ID:', subcategoryId, 'Alt Kategoriler Dahil:', includeSubcategories);
+
+    // Alt kategoriyi bulmak için tüm kategorileri ara
     const categories = await Category.find();
-    let updatedCount = 0;
-    
+    let subcategory = null;
+    let parentCategory = null;
+
     for (const category of categories) {
-      // Kategoriye ait ürünleri güncelle
-      const categoryUpdateResult = await Item.updateMany(
-        { category: category.name },
-        { $set: { categoryId: category._id } }
-      );
-      
-      // Alt kategorileri işle
-      for (const subcategory of category.subcategories) {
-        const subcategoryUpdateResult = await Item.updateMany(
-          { 
-            category: category.name,
-            subcategory: subcategory.name 
-          },
-          { $set: { 
-            categoryId: category._id,
-            subcategoryId: subcategory._id 
-          } }
-        );
-        
-        updatedCount += subcategoryUpdateResult.modifiedCount;
+      const found = findSubcategoryById(category, subcategoryId);
+      if (found) {
+        subcategory = found;
+        parentCategory = category;
+        break;
       }
-      
-      updatedCount += categoryUpdateResult.modifiedCount;
     }
+
+    if (!subcategory) {
+      return res.status(404).json({ message: 'Alt kategori bulunamadı' });
+    }
+
+    let products = [];
+    
+    if (includeSubcategories === 'true' && subcategory.subcategories && subcategory.subcategories.length > 0) {
+      // Alt kategorinin tüm alt kategorilerini dahil et
+      const allSubIds = getAllSubcategoryIds(subcategory);
+      const allIds = [new mongoose.Types.ObjectId(subcategoryId), ...allSubIds];
+      
+      console.log('🔍 Alt kategori taranacak IDler:', allIds.length);
+      
+      products = await Item.find({
+        $or: [
+          { categoryId: { $in: allIds } },
+          { subcategoryId: { $in: allIds } }
+        ]
+      }).sort({ name: 1 });
+    } else {
+      // Sadece bu alt kategorideki ürünleri getir
+      products = await Item.find({
+        $or: [
+          { categoryId: new mongoose.Types.ObjectId(subcategoryId) },
+          { subcategoryId: new mongoose.Types.ObjectId(subcategoryId) }
+        ]
+      }).sort({ name: 1 });
+    }
+
+    console.log('🟢 Alt kategori ürün sayısı:', products.length);
     
     res.json({
-      message: 'Ürün referansları güncellendi',
-      updatedCount: updatedCount
+      category: {
+        _id: parentCategory._id,
+        name: parentCategory.name
+      },
+      subcategory: {
+        _id: subcategory._id,
+        name: subcategory.name,
+        imageUrl: subcategory.imageUrl,
+        hasSubcategories: subcategory.subcategories && subcategory.subcategories.length > 0
+      },
+      products: products,
+      totalProducts: products.length
     });
-    
   } catch (err) {
-    res.status(500).json({ 
-      message: 'Ürün referansları güncellenirken hata oluştu',
-      error: err.message 
-    });
+    console.error('🔴 Alt kategori ürün getirme hatası:', err);
+    res.status(500).json({ message: err.message });
   }
 });
 
-// EXCEL IMPORT/EXPORT ENDPOINT'LERİ
-
-// Excel Şablonu İndirme Endpoint'i
-app.get('/api/export/products-template', async (req, res) => {
+// DEBUG: Kategori hiyerarşisi ve ürün kontrolü
+app.get('/api/debug/category-hierarchy/:categoryId', async (req, res) => {
   try {
-    // Kategorileri al
-    const categories = await Category.find();
+    const { categoryId } = req.params;
+    const category = await Category.findById(categoryId);
     
-    // Excel verisini hazırla
-    const templateData = [
-      // Başlık satırı
-      [
-        'barcode', 'name', 'description', 'category', 'categoryId', 
-        'subcategory', 'subcategoryId', 'price', 'specs', 'images'
-      ],
-      // Örnek veri satırı
-      [
-        '1234567890', 'Ürün Adı', 'Ürün Açıklaması', 'Elektronik', 'kategori_id_1',
-        'Bilgisayar', 'altkategori_id_1', '1000.00', 'Özellik 1|Özellik 2', 'https://example.com/resim1.jpg|https://example.com/resim2.jpg'
-      ],
-      // Fiyat Alınız örneği
-      [
-        '1234567891', 'Özel Ürün', 'Fiyat için iletişime geçin', 'Elektronik', 'kategori_id_1',
-        'Bilgisayar', 'altkategori_id_1', 'Fiyat Alınız', 'Özellik 1|Özellik 2', 'https://example.com/resim3.jpg'
-      ],
-      // Açıklama satırı
-      [
-        'ZORUNLU', 'ZORUNLU', 'Opsiyonel', 'ZORUNLU', 'ZORUNLU (Kategori ID)',
-        'Opsiyonel', 'Opsiyonel (Alt Kategori ID)', 'ZORUNLU (Sayı veya "Fiyat Alınız")', 'Özellikler | ile ayrılır', 'Resim URLleri | ile ayrılır'
+    if (!category) {
+      return res.status(404).json({ message: 'Kategori bulunamadı' });
+    }
+
+    // Tüm alt kategori ID'lerini topla
+    const allSubcategoryIds = getAllSubcategoryIds(category);
+    const allIds = [new mongoose.Types.ObjectId(categoryId), ...allSubcategoryIds];
+    
+    // Her bir kategorideki ürünleri kontrol et
+    const categoryProducts = await Item.find({
+      categoryId: new mongoose.Types.ObjectId(categoryId)
+    });
+    
+    const subcategoryProducts = await Item.find({
+      subcategoryId: { $in: allIds }
+    });
+    
+    const allProducts = await Item.find({
+      $or: [
+        { categoryId: { $in: allIds } },
+        { subcategoryId: { $in: allIds } }
       ]
-    ];
-
-    // Kategori referans sayfası
-    const categoryData = [
-      ['Kategori ID', 'Kategori Adı', 'Alt Kategori ID', 'Alt Kategori Adı'],
-      ...categories.flatMap(category => 
-        category.subcategories.length > 0 
-          ? category.subcategories.map((subcat, index) => [
-              index === 0 ? category._id.toString() : '',
-              index === 0 ? category.name : '',
-              subcat._id.toString(),
-              subcat.name
-            ])
-          : [[category._id.toString(), category.name, '', '']]
-      )
-    ];
-
-    // Workbook oluştur
-    const workbook = XLSX.utils.book_new();
-    
-    // Ana veri sayfası
-    const worksheet = XLSX.utils.aoa_to_sheet(templateData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ürün Şablonu');
-    
-    // Kategori referans sayfası
-    const categoryWorksheet = XLSX.utils.aoa_to_sheet(categoryData);
-    XLSX.utils.book_append_sheet(workbook, categoryWorksheet, 'Kategori Referansları');
-    
-    // Açıklama sayfası
-    const instructions = [
-      ['ALAN ADI', 'AÇIKLAMA', 'ZORUNLULUK', 'FORMAT'],
-      ['barcode', 'Ürün barkodu', 'ZORUNLU', 'Metin'],
-      ['name', 'Ürün adı', 'ZORUNLU', 'Metin'],
-      ['description', 'Ürün açıklaması', 'OPSİYONEL', 'Metin'],
-      ['category', 'Kategori adı', 'ZORUNLU', 'Metin'],
-      ['categoryId', 'Kategori ID', 'ZORUNLU', 'Metin (Kategori Referansları sayfasından alınabilir)'],
-      ['subcategory', 'Alt kategori adı', 'OPSİYONEL', 'Metin'],
-      ['subcategoryId', 'Alt kategori ID', 'OPSİYONEL', 'Metin (Kategori Referansları sayfasından alınabilir)'],
-      ['price', 'Ürün fiyatı', 'ZORUNLU', 'Sayı (1000.00) veya "Fiyat Alınız" metni'],
-      ['specs', 'Ürün özellikleri', 'OPSİYONEL', 'Özellikler | karakteri ile ayrılır'],
-      ['images', 'Resim URLleri', 'OPSİYONEL', 'URLler | karakteri ile ayrılır'],
-      ['', '', '', ''],
-      ['ÖNEMLİ NOTLAR:', '', '', ''],
-      ['- categoryId ve category alanları her ikisi de doldurulmalıdır', '', '', ''],
-      ['- price alanına sayısal değer veya "Fiyat Alınız" yazılabilir', '', '', ''],
-      ['- Excel dosyasını kaydetmeden önce "Ürün Şablonu" sayfasındaki örnek satırları silin', '', '', ''],
-      ['- Sadece "Ürün Şablonu" sayfasındaki veriler işlenecektir', '', '', '']
-    ];
-    
-    const instructionWorksheet = XLSX.utils.aoa_to_sheet(instructions);
-    XLSX.utils.book_append_sheet(workbook, instructionWorksheet, 'Yönergeler');
-
-    // Buffer'a yaz
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    // Dosyayı gönder
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=urun-sablonu.xlsx');
-    res.send(buffer);
-
-    console.log('Excel şablonu indirildi');
-
-  } catch (err) {
-    console.error('Şablon oluşturma hatası:', err);
-    res.status(500).json({ 
-      message: 'Şablon oluşturulurken hata oluştu',
-      error: err.message 
     });
+
+    res.json({
+      category: {
+        _id: category._id,
+        name: category.name,
+        subcategoriesCount: category.subcategories?.length || 0
+      },
+      hierarchy: {
+        totalSubcategoryIds: allIds.length,
+        allIds: allIds
+      },
+      products: {
+        inCategory: categoryProducts.length,
+        inSubcategories: subcategoryProducts.length,
+        total: allProducts.length,
+        categoryProducts: categoryProducts.map(p => ({ _id: p._id, name: p.name })),
+        subcategoryProducts: subcategoryProducts.map(p => ({ _id: p._id, name: p.name, subcategoryId: p.subcategoryId }))
+      }
+    });
+  } catch (err) {
+    console.error('Debug hatası:', err);
+    res.status(500).json({ message: err.message });
   }
 });
 
-// Excel Import Endpoint'i
-app.post('/api/import/products-excel', uploadExcel.single('excelFile'), async (req, res) => {
-  console.log('🔵 Excel import endpointi çağrıldı');
-  console.log('📁 Dosya bilgisi:', req.file ? {
-    filename: req.file.filename,
-    originalname: req.file.originalname,
-    size: req.file.size,
-    mimetype: req.file.mimetype
-  } : 'Dosya yok');
+// FEATURES CRUD ENDPOINTS
 
+// Tüm özellikleri getir
+app.get('/api/features', async (req, res) => {
   try {
-    if (!req.file) {
-      console.log('❌ Dosya yüklenmedi');
-      return res.status(400).json({ message: 'Excel dosyası yüklenmedi' });
-    }
+    const features = await Feature.find().sort({ type: 1, name: 1 });
+    res.json(features);
+  } catch (err) {
+    console.error('🔴 Özellikler getirme hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
 
-    console.log('✅ Dosya alındı:', req.file.filename);
-
-    // Excel dosyasını oku
-    const workbook = XLSX.readFile(req.file.path);
-    const worksheetNames = workbook.SheetNames;
-    console.log('📊 Worksheetler:', worksheetNames);
-
-    const worksheet = workbook.Sheets['Ürün Şablonu'];
+// Yeni özellik ekle
+app.post('/api/features', async (req, res) => {
+  try {
+    const { name, description, type, hasValue } = req.body;
     
-    if (!worksheet) {
-      console.log('❌ Ürün Şablonu worksheeti bulunamadı');
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: 'Excel dosyasında "Ürün Şablonu" sayfası bulunamadı' });
+    console.log('🔵 Yeni özellik ekleme:', { name, type });
+
+    // Aynı isim ve türde özellik var mı kontrol et
+    const existingFeature = await Feature.findOne({ name, type });
+    if (existingFeature) {
+      return res.status(400).json({ message: 'Bu özellik zaten mevcut' });
     }
 
-    const data = XLSX.utils.sheet_to_json(worksheet);
-    console.log('📈 Okunan veri satır sayısı:', data.length);
+    const feature = new Feature({
+      name,
+      description,
+      type,
+      hasValue: hasValue || false
+    });
+
+    await feature.save();
+    console.log('🟢 Özellik başarıyla eklendi:', feature._id);
+    res.status(201).json(feature);
+  } catch (err) {
+    console.error('🔴 Özellik ekleme hatası:', err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Özellik sil
+app.delete('/api/features/:id', async (req, res) => {
+  try {
+    const feature = await Feature.findByIdAndDelete(req.params.id);
+    if (!feature) {
+      return res.status(404).json({ message: 'Özellik bulunamadı' });
+    }
+    console.log('🟢 Özellik silindi:', req.params.id);
+    res.json({ message: 'Özellik silindi', deletedFeature: feature });
+  } catch (err) {
+    console.error('🔴 Özellik silme hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Türe göre tüm özellikleri sil
+app.delete('/api/features/type/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    const result = await Feature.deleteMany({ type });
+    console.log('🟢 Özellikler silindi:', { type, deletedCount: result.deletedCount });
+    res.json({ 
+      message: `${result.deletedCount} özellik silindi`,
+      deletedCount: result.deletedCount 
+    });
+  } catch (err) {
+    console.error('🔴 Özellikler silme hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Toplu özellik ekle
+app.post('/api/features/bulk', async (req, res) => {
+  try {
+    const { features } = req.body;
     
-    if (data.length === 0) {
-      console.log('❌ İşlenecek veri bulunamadı');
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: 'Excel dosyasında işlenecek veri bulunamadı' });
+    console.log('🔵 Toplu özellik ekleme:', features.length);
+
+    if (!features || !Array.isArray(features)) {
+      return res.status(400).json({ message: 'Geçersiz özellik listesi' });
     }
 
-    const results = {
-      total: data.length,
-      success: 0,
-      errors: [],
-      skipped: 0
-    };
+    const results = [];
+    const errors = [];
 
-    // Ürünleri işle
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const rowNumber = i + 2; // Başlık satırı +1
-
+    for (const featureData of features) {
       try {
-        // Validasyon
-        if (!row.barcode || !row.name || !row.category || !row.categoryId || !row.price) {
-          results.errors.push({
-            row: rowNumber,
-            error: 'Zorunlu alanlar eksik (barcode, name, category, categoryId, price)',
-            data: row
-          });
-          results.skipped++;
-          continue;
-        }
-
-        // Kategori kontrolü
-        const category = await Category.findById(row.categoryId);
-        if (!category) {
-          results.errors.push({
-            row: rowNumber,
-            error: `Geçersiz kategori ID: ${row.categoryId}`,
-            data: row
-          });
-          results.skipped++;
-          continue;
-        }
-
-        // Alt kategori kontrolü
-        if (row.subcategoryId) {
-          const subcategory = category.subcategories.id(row.subcategoryId);
-          if (!subcategory) {
-            results.errors.push({
-              row: rowNumber,
-              error: `Geçersiz alt kategori ID: ${row.subcategoryId}`,
-              data: row
-            });
-            results.skipped++;
-            continue;
-          }
-        }
-
-        // Fiyat validasyonu
-        let finalPrice;
-        if (row.price === 'Fiyat Alınız') {
-          finalPrice = 'Fiyat Alınız';
-        } else {
-          const priceValue = parseFloat(row.price);
-          if (isNaN(priceValue) || priceValue < 0) {
-            results.errors.push({
-              row: rowNumber,
-              error: 'Geçersiz fiyat değeri',
-              data: row
-            });
-            results.skipped++;
-            continue;
-          }
-          finalPrice = priceValue;
-        }
-
-        // Specs'i array'e çevir
-        const specsArray = row.specs ? row.specs.split('|').filter(spec => spec.trim()) : [];
-
-        // Images'ı array'e çevir
-        const imagesArray = row.images ? row.images.split('|').filter(img => img.trim()) : [];
-
-        // Ürün verisi
-        const productData = {
-          barcode: row.barcode.toString(),
-          name: row.name,
-          description: row.description || '',
-          category: row.category,
-          categoryId: row.categoryId,
-          subcategory: row.subcategory || '',
-          subcategoryId: row.subcategoryId || null,
-          price: finalPrice,
-          specs: specsArray,
-          images: imagesArray
-        };
-
-        // Ürünü kaydet (güncelleme veya yeni ekleme)
-        const existingProduct = await Item.findOne({ barcode: productData.barcode });
-        
-        if (existingProduct) {
-          // Güncelleme
-          await Item.findByIdAndUpdate(existingProduct._id, productData);
-          results.success++;
-        } else {
-          // Yeni ekleme
-          const newProduct = new Item(productData);
-          await newProduct.save();
-          results.success++;
-        }
-
-      } catch (error) {
-        results.errors.push({
-          row: rowNumber,
-          error: error.message,
-          data: row
+        // Aynı isim ve türde özellik var mı kontrol et
+        const existingFeature = await Feature.findOne({ 
+          name: featureData.name, 
+          type: featureData.type 
         });
-        results.skipped++;
+
+        if (!existingFeature) {
+          const feature = new Feature({
+            name: featureData.name,
+            description: featureData.description,
+            type: featureData.type,
+            hasValue: featureData.hasValue || false
+          });
+          await feature.save();
+          results.push(feature);
+        } else {
+          errors.push(`"${featureData.name}" zaten mevcut`);
+        }
+      } catch (error) {
+        errors.push(`"${featureData.name}": ${error.message}`);
       }
     }
 
-    // Dosyayı temizle
-    fs.unlinkSync(req.file.path);
-
-    console.log('✅ Import işlemi tamamlandı:', results);
+    console.log('🟢 Toplu özellik ekleme tamamlandı:', {
+      added: results.length,
+      errors: errors.length
+    });
 
     res.json({
-      message: 'Excel import işlemi tamamlandı',
-      results: results
+      message: `${results.length} özellik eklendi, ${errors.length} hata`,
+      features: results,
+      errors: errors
     });
-
   } catch (err) {
-    // Hata durumunda dosyayı temizle
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    console.error('🔴 Toplu özellik ekleme hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Özellik güncelle
+app.put('/api/features/:id', async (req, res) => {
+  try {
+    const { name, description, type, hasValue } = req.body;
+    
+    const feature = await Feature.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        description,
+        type,
+        hasValue,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!feature) {
+      return res.status(404).json({ message: 'Özellik bulunamadı' });
     }
 
-    console.error('🔥 Excel import hatası:', err);
-    console.error('🔥 Hata detayı:', err.stack);
-    
-    res.status(500).json({ 
-      message: 'Excel import işlemi sırasında hata oluştu',
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-    });
-  }
-});
-
-// Mevcut ürünleri excel olarak export et
-app.get('/api/export/products', async (req, res) => {
-  try {
-    const products = await Item.find().populate('categoryId', 'name');
-    
-    const data = products.map(product => ({
-      barcode: product.barcode,
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      categoryId: product.categoryId._id,
-      subcategory: product.subcategory,
-      subcategoryId: product.subcategoryId,
-      price: product.price,
-      specs: product.specs.join('|'),
-      images: product.images.join('|'),
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ürünler');
-
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=urunler.xlsx');
-    res.send(buffer);
-
+    console.log('🟢 Özellik güncellendi:', feature._id);
+    res.json(feature);
   } catch (err) {
-    console.error('Ürün export hatası:', err);
-    res.status(500).json({ 
-      message: 'Ürünler export edilirken hata oluştu',
-      error: err.message 
-    });
+    console.error('🔴 Özellik güncelleme hatası:', err);
+    res.status(400).json({ message: err.message });
   }
 });
 
-// IMAGE UPLOAD ENDPOINT (ImageKit integration)
+// IMAGE UPLOAD ENDPOINTS
 app.post('/api/upload-images', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: 'No files uploaded' });
+      return res.status(400).json({ message: 'Resim dosyası bulunamadı' });
     }
 
-    const uploadPromises = req.files.map(file => {
-      return new Promise((resolve, reject) => {
-        imagekit.upload({
-          file: file.buffer,
-          fileName: `${Date.now()}-${file.originalname}`,
-          folder: '/catalog-app'
-        }, (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result.url);
-          }
-        });
-      });
-    });
+    const imageUrls = [];
 
-    const imageUrls = await Promise.all(uploadPromises);
-    res.json({ imageUrls });
-  } catch (err) {
-    res.status(500).json({ 
-      message: 'Image upload failed', 
-      error: err.message 
+    for (const file of req.files) {
+      try {
+        const result = await imagekit.upload({
+          file: file.buffer,
+          fileName: `product_${Date.now()}_${file.originalname}`,
+          folder: '/products'
+        });
+
+        imageUrls.push(result.url);
+      } catch (uploadError) {
+        console.error('ImageKit upload error:', uploadError);
+        return res.status(500).json({ message: 'Resim yükleme hatası' });
+      }
+    }
+
+    res.json({ 
+      message: `${imageUrls.length} resim başarıyla yüklendi`,
+      imageUrls: imageUrls 
     });
+  } catch (err) {
+    console.error('Resim yükleme hatası:', err);
+    res.status(500).json({ message: 'Resim yükleme hatası' });
   }
 });
 
-// Health check endpoint
-app.get('/api/health', async (req, res) => {
+app.post('/api/upload', upload.array('images', 10), async (req, res) => {
   try {
-    const dbStatus = mongoose.connection.readyState;
-    const dbStatusText = {
-      0: 'disconnected',
-      1: 'connected',
-      2: 'connecting',
-      3: 'disconnecting'
-    }[dbStatus] || 'unknown';
-    
-    const categoryCount = await Category.countDocuments();
-    const itemCount = await Item.countDocuments();
-    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'Resim dosyası bulunamadı' });
+    }
+
+    const imageUrls = [];
+
+    for (const file of req.files) {
+      try {
+        const result = await imagekit.upload({
+          file: file.buffer,
+          fileName: `category_${item.name}`,
+          folder: '/categories'
+        });
+
+        imageUrls.push(result.url);
+      } catch (uploadError) {
+        console.error('ImageKit upload error:', uploadError);
+        return res.status(500).json({ message: 'Resim yükleme hatası' });
+      }
+    }
+
     res.json({ 
-      status: 'OK', 
-      message: 'Server is running',
-      database: {
-        status: dbStatusText,
-        connected: dbStatus === 1,
-        categoryCount: categoryCount,
-        itemCount: itemCount
+      message: `${imageUrls.length} resim başarıyla yüklendi`,
+      imageUrls: imageUrls 
+    });
+  } catch (err) {
+    console.error('Resim yükleme hatası:', err);
+    res.status(500).json({ message: 'Resim yükleme hatası' });
+  }
+});
+
+// DEBUG ENDPOINTS
+app.get('/api/debug/categories', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    
+    // Tüm subcategory'leri ID kontrolü ile logla
+    categories.forEach(category => {
+      console.log(`Kategori: ${category.name} - Subcategories: ${category.subcategories?.length || 0}`);
+      if (category.subcategories) {
+        category.subcategories.forEach((sub, index) => {
+          console.log(`  ${index}. ${sub.name} - ID: ${sub._id} - ID Type: ${typeof sub._id} - Alt kategori: ${sub.subcategories?.length || 0}`);
+        });
+      }
+    });
+
+    res.json({ 
+      count: categories.length, 
+      categories: categories.map(cat => ({
+        _id: cat._id,
+        name: cat.name,
+        imageUrl: cat.imageUrl,
+        subcategoriesCount: cat.subcategories?.length || 0,
+        subcategories: cat.subcategories?.map(sub => ({
+          _id: sub._id,
+          name: sub.name,
+          imageUrl: sub.imageUrl,
+          subcategoriesCount: sub.subcategories?.length || 0,
+          idType: typeof sub._id
+        })) || []
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/debug/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: 'Kategori bulunamadı' });
+    }
+
+    console.log('=== KATEGORİ DEBUG ===');
+    console.log('Kategori:', category.name);
+    console.log('Subcategories:', category.subcategories);
+
+    res.json({
+      _id: category._id,
+      name: category.name,
+      imageUrl: category.imageUrl,
+      subcategories: category.subcategories,
+      subcategoriesCount: category.subcategories?.length || 0,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt
+    });
+  } catch (err) {
+    console.error('Debug hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/debug/items', async (req, res) => {
+  try {
+    const items = await Item.find();
+    res.json({ count: items.length, items: items });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/debug/features', async (req, res) => {
+  try {
+    const features = await Feature.find();
+    res.json({ 
+      count: features.length, 
+      features: features,
+      byType: {
+        usage_area: features.filter(f => f.type === 'usage_area').length,
+        product_measurements: features.filter(f => f.type === 'product_measurements').length,
+        product_properties: features.filter(f => f.type === 'product_properties').length
       }
     });
   } catch (err) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      message: 'Server error',
-      error: err.message
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// CATEGORY CRUD
+app.post('/api/categories', async (req, res) => {
+  try {
+    // Tüm subcategory'lere ObjectId formatında ID ekle
+    const categoryData = ensureSubcategoryIds(req.body);
+    const category = new Category(categoryData);
+    await category.save();
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Kategori bulunamadı' });
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GÜNCELLENMİŞ PUT ENDPOINT - ObjectId DESTEKLİ
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { name, imageUrl, subcategories } = req.body;
+    
+    console.log('=== KATEGORİ GÜNCELLEME BAŞLANGICI ===');
+    console.log('🔵 Kategori ID:', req.params.id);
+
+    // Tüm subcategory'lere ObjectId formatında ID ekle
+    const categoryData = ensureSubcategoryIds({
+      name,
+      imageUrl,
+      subcategories
+    });
+
+    console.log('🔵 ObjectId eklenmiş veri:', {
+      name: categoryData.name,
+      subcategoriesCount: categoryData.subcategories?.length || 0
+    });
+
+    // Kategoriyi bul
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      console.log('🔴 Kategori bulunamadı:', req.params.id);
+      return res.status(404).json({ message: 'Kategori bulunamadı' });
+    }
+
+    // Field'ları direkt set et
+    if (categoryData.name !== undefined) category.name = categoryData.name;
+    if (categoryData.imageUrl !== undefined) category.imageUrl = categoryData.imageUrl;
+    if (categoryData.subcategories !== undefined) category.subcategories = categoryData.subcategories;
+
+    console.log('🟡 Kayıt öncesi category:', {
+      name: category.name,
+      subcategoriesCount: category.subcategories?.length || 0
+    });
+
+    // Save metodu ile kaydet
+    const savedCategory = await category.save();
+    
+    console.log('🟢 Kayıt sonrası category:', {
+      name: savedCategory.name,
+      subcategoriesCount: savedCategory.subcategories?.length || 0
+    });
+
+    // ID kontrolü
+    if (savedCategory.subcategories && savedCategory.subcategories.length > 0) {
+      console.log('🟢 Subcategory ID kontrolü (ObjectId formatında):');
+      savedCategory.subcategories.forEach((subcat, index) => {
+        console.log(`  ${index}. ${subcat.name} - ID: ${subcat._id} - ID Type: ${typeof subcat._id} - Alt kategori: ${subcat.subcategories?.length || 0}`);
+      });
+    }
+
+    console.log('=== KATEGORİ GÜNCELLEME TAMAMLANDI ===');
+    
+    res.json(savedCategory);
+  } catch (err) {
+    console.error('🔴 KATEGORİ GÜNCELLEME HATASI:', err);
+    console.error('🔴 Hata detayı:', err.message);
+    
+    res.status(400).json({ 
+      message: err.message || 'Kategori güncellenirken hata oluştu'
     });
   }
 });
 
-// 404 handler for API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ message: 'API endpoint not found' });
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Kategori bulunamadı' });
+    res.json({ message: 'Kategori silindi' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Start the server
+// ESKİ ENDPOINT (Geriye uyumluluk için)
+app.get('/api/categories/:categoryId/products', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { subcategoryId } = req.query;
+    
+    console.log('🔵 ESKİ ENDPOINT - Ürün getirme isteği - Kategori:', categoryId, 'Alt Kategori:', subcategoryId);
+
+    if (subcategoryId) {
+      // Alt kategori için yeni endpoint'e yönlendir
+      const response = await getProductsBySubcategory(subcategoryId);
+      return res.json(response);
+    } else {
+      // Ana kategori için yeni endpoint'e yönlendir
+      const response = await getProductsByCategory(categoryId, false);
+      return res.json(response);
+    }
+  } catch (err) {
+    console.error('🔴 ESKİ ENDPOINT - Ürün getirme hatası:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// SUBCATEGORY MANAGEMENT (nested) - ObjectId formatında
+app.post('/api/categories/:id/subcategories', async (req, res) => {
+  try {
+    const { parentId, name, imageUrl } = req.body;
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Kategori bulunamadı' });
+
+    const newSubcat = { 
+      _id: new mongoose.Types.ObjectId(), // ObjectId formatında
+      name, 
+      imageUrl, 
+      subcategories: [] 
+    };
+
+    if (parentId) {
+      // parentId string geliyorsa ObjectId'ye çevir
+      const parentObjectId = typeof parentId === 'string' ? new mongoose.Types.ObjectId(parentId) : parentId;
+      const parent = findSubcategoryById(category, parentObjectId);
+      if (!parent) return res.status(404).json({ message: 'Üst alt kategori bulunamadı' });
+      parent.subcategories.push(newSubcat);
+    } else {
+      category.subcategories.push(newSubcat);
+    }
+
+    await category.save();
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.put('/api/categories/:id/subcategories/:subId', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Kategori bulunamadı' });
+
+    const subcat = findSubcategoryById(category, req.params.subId);
+    if (!subcat) return res.status(404).json({ message: 'Alt kategori bulunamadı' });
+
+    subcat.name = req.body.name || subcat.name;
+    subcat.imageUrl = req.body.imageUrl || subcat.imageUrl;
+
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete('/api/categories/:id/subcategories/:subId', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Kategori bulunamadı' });
+
+    const removed = removeSubcategoryById(category, req.params.subId);
+    if (!removed) return res.status(404).json({ message: 'Alt kategori bulunamadı' });
+
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GÜNCELLENMİŞ ITEMS CRUD - TÜM SEVİYELERDE KATEGORİ DESTEĞİ
+app.post('/api/items', async (req, res) => {
+  try {
+    const { categoryId } = req.body;
+    console.log('🔵 Yeni ürün oluşturma isteği:', { categoryId, body: req.body });
+
+    if (!categoryId) {
+      return res.status(400).json({ message: 'categoryId gereklidir' });
+    }
+
+    // Tüm kategorileri getir
+    const categories = await Category.find();
+    
+    // Kategoriyi herhangi bir seviyede ara
+    const category = findCategoryById(categories, categoryId);
+    
+    if (!category) {
+      console.log('🔴 Kategori bulunamadı:', categoryId);
+      return res.status(400).json({ message: 'Kategori bulunamadı' });
+    }
+
+    console.log('🟢 Kategori bulundu:', category.name);
+
+    // Kategori ismini bulmak için hiyerarşiyi oluştur
+    let categoryName = category.name;
+    let subcategoryName = '';
+    
+    // Eğer bu bir alt kategoriyse, ana kategori ismini bul
+    if (category._id.toString() !== categoryId) {
+      // Bu bir alt kategori, ana kategori ismini bulmaya çalış
+      for (const mainCat of categories) {
+        const foundSub = findSubcategoryById(mainCat, categoryId);
+        if (foundSub) {
+          categoryName = mainCat.name;
+          subcategoryName = foundSub.name;
+          break;
+        }
+      }
+    }
+
+    const item = new Item({
+      ...req.body,
+      category: categoryName,
+      subcategory: subcategoryName,
+      categoryId: categoryId
+    });
+
+    await item.save();
+    console.log('🟢 Ürün başarıyla oluşturuldu:', item._id);
+    res.status(201).json(item);
+  } catch (err) {
+    console.error('🔴 Ürün oluşturma hatası:', err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.get('/api/items', async (req, res) => {
+  try {
+    const items = await Item.find();
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/items/:id', async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Ürün bulunamadı' });
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/items/:id', async (req, res) => {
+  try {
+    const { categoryId } = req.body;
+    console.log('🔵 Ürün güncelleme isteği:', { id: req.params.id, categoryId, body: req.body });
+
+    if (!categoryId) {
+      return res.status(400).json({ message: 'categoryId gereklidir' });
+    }
+
+    // Tüm kategorileri getir
+    const categories = await Category.find();
+    
+    // Kategoriyi herhangi bir seviyede ara
+    const category = findCategoryById(categories, categoryId);
+    
+    if (!category) {
+      console.log('🔴 Kategori bulunamadı:', categoryId);
+      return res.status(400).json({ message: 'Kategori bulunamadı' });
+    }
+
+    console.log('🟢 Kategori bulundu:', category.name);
+
+    // Kategori ismini bulmak için hiyerarşiyi oluştur
+    let categoryName = category.name;
+    let subcategoryName = '';
+    
+    // Eğer bu bir alt kategoriyse, ana kategori ismini bul
+    if (category._id.toString() !== categoryId) {
+      // Bu bir alt kategori, ana kategori ismini bulmaya çalış
+      for (const mainCat of categories) {
+        const foundSub = findSubcategoryById(mainCat, categoryId);
+        if (foundSub) {
+          categoryName = mainCat.name;
+          subcategoryName = foundSub.name;
+          break;
+        }
+      }
+    }
+
+    const item = await Item.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...req.body,
+        category: categoryName,
+        subcategory: subcategoryName,
+        categoryId: categoryId
+      },
+      { new: true }
+    );
+
+    if (!item) return res.status(404).json({ message: 'Ürün bulunamadı' });
+    
+    console.log('🟢 Ürün başarıyla güncellendi:', item._id);
+    res.json(item);
+  } catch (err) {
+    console.error('🔴 Ürün güncelleme hatası:', err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete('/api/items/:id', async (req, res) => {
+  try {
+    const item = await Item.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Ürün bulunamadı' });
+    res.json({ message: 'Ürün silindi' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// HEALTH
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// SERVER START
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log(`API Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`\nExcel Endpoints:`);
-  console.log(`- http://localhost:${PORT}/api/export/products-template (GET) - Şablon indir`);
-  console.log(`- http://localhost:${PORT}/api/import/products-excel (POST) - Excel yükle`);
-  console.log(`- http://localhost:${PORT}/api/export/products (GET) - Ürünleri export et`);
-  console.log(`\nAdmin Endpoints:`);
-  console.log(`- http://localhost:${PORT}/api/admin/update-product-references (POST) - Referansları güncelle`);
+  console.log(`Debug Categories: http://localhost:${PORT}/api/debug/categories`);
+  console.log(`Yeni Ürün Endpointleri:`);
+  console.log(`- Kategori Ürünleri: http://localhost:${PORT}/api/products/by-category/:categoryId`);
+  console.log(`- Alt Kategori Ürünleri: http://localhost:${PORT}/api/products/by-subcategory/:subcategoryId`);
+  console.log(`- Debug Hierarchy: http://localhost:${PORT}/api/debug/category-hierarchy/:categoryId`);
+  console.log(`Features Endpointleri:`);
+  console.log(`- Tüm Özellikler: http://localhost:${PORT}/api/features`);
+  console.log(`- Özellik Ekle: http://localhost:${PORT}/api/features (POST)`);
+  console.log(`- Toplu Özellik Ekle: http://localhost:${PORT}/api/features/bulk (POST)`);
+  console.log(`- Özellik Sil: http://localhost:${PORT}/api/features/:id (DELETE)`);
+  console.log(`- Debug Features: http://localhost:${PORT}/api/debug/features`);
 });
