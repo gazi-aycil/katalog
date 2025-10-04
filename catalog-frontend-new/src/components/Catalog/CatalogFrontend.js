@@ -219,12 +219,10 @@ const CatalogFrontend = () => {
       }
     }
   };
-
-  // Alt Kategorileri Görüntüleme Bileşeni
   const renderSubcategories = () => {
     const currentCategory = selectedSubcategory || selectedCategory;
     if (!currentCategory || !currentCategory.subcategories) return null;
-
+  
     return (
       <Box>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
@@ -235,13 +233,14 @@ const CatalogFrontend = () => {
             {currentCategory.subcategories.length} alt kategori
           </Typography>
         </Box>
-
+  
         <Grid container spacing={3}>
           {currentCategory.subcategories.map((subcategory, index) => (
             <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
               <Card 
                 sx={{ 
-                  height: '350px',
+                  height: '350px', // TÜM KARTLAR AYNI
+                  width: '100%',
                   cursor: 'pointer', 
                   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   borderRadius: 2,
@@ -258,9 +257,11 @@ const CatalogFrontend = () => {
                 }}
                 onClick={() => handleSubcategorySelect(subcategory)}
               >
+                {/* GÖRSEL - KESİN AYNI BOYUT */}
                 <Box 
                   sx={{ 
-                    height: '180px',
+                    height: '200px', // TÜM GÖRSELLER AYNI
+                    width: '100%',
                     overflow: 'hidden',
                     position: 'relative',
                     flexShrink: 0
@@ -273,62 +274,47 @@ const CatalogFrontend = () => {
                     sx={{ 
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.5s ease',
-                      '&:hover': {
-                        transform: 'scale(1.1)'
-                      }
-                    }}
-                    onError={(e) => {
-                      if (currentCategory.imageUrl) {
-                        e.target.src = currentCategory.imageUrl;
-                      } else {
-                        e.target.src = '/placeholder-category.jpg';
-                      }
+                      objectFit: 'cover'
                     }}
                   />
                 </Box>
                 
+                {/* İÇERİK - KESİN AYNI BOYUT */}
                 <CardContent 
                   sx={{ 
-                    flex: 1,
-                    p: 3,
+                    height: '150px', // TÜM İÇERİKLER AYNI
+                    p: 2,
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     textAlign: 'center',
-                    overflow: 'hidden',
-                    minHeight: '170px'
+                    overflow: 'hidden'
                   }}
                 >
-                  <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ 
+                    height: '70px', // BAŞLIK ALANI AYNI
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
                     <Typography 
                       variant="h6" 
                       component="div" 
                       sx={{ 
                         fontWeight: 600,
+                        lineHeight: 1.3,
                         display: '-webkit-box',
-                        WebkitLineClamp: 3,
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.3,
-                        wordBreak: 'break-word',
-                        hyphens: 'auto'
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       {subcategory.name}
                     </Typography>
                   </Box>
                   
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      mt: 2,
-                      flexShrink: 0
-                    }}
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     {subcategory.subcategories && subcategory.subcategories.length > 0 
                       ? `${subcategory.subcategories.length} alt kategori` 
                       : 'Ürünleri görüntüle'}
@@ -387,7 +373,19 @@ const CatalogFrontend = () => {
 
   if (loading && view === 'home') {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+        sx={{
+          backgroundImage: 'url(/bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          boxShadow: 'inset 0 0 100px rgba(0,0,0,0.3)'
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -395,15 +393,38 @@ const CatalogFrontend = () => {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+        sx={{
+          backgroundImage: 'url(/bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          boxShadow: 'inset 0 0 100px rgba(0,0,0,0.3)'
+        }}
+      >
         <Typography color="error">{error}</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#2c3e50' }}>
+    <Box 
+      sx={{ 
+        flexGrow: 1, 
+        minHeight: '100vh',
+        backgroundImage: view !== 'product' ? 'url(/bg.png)' : 'none',
+        backgroundColor: view === 'product' ? '#ffffff' : 'transparent',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        boxShadow: view !== 'product' ? 'inset 0 0 100px rgba(0,0,0,0.3)' : 'none'
+      }}
+    >
+      <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#383E42' }}>
         <Toolbar>
           {view !== 'home' && (
             <IconButton
@@ -416,8 +437,7 @@ const CatalogFrontend = () => {
             </IconButton>
           )}
           
-          <HomeIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="div" align="center" sx={{ flexGrow: 1 }}>
             {view === 'home' ? 'Ravinzo Katalog' : 
              view === 'subcategories' ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name) : 
              view === 'category' ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name) : 
@@ -449,10 +469,12 @@ const CatalogFrontend = () => {
         )}
 
         {view === 'product' && selectedProduct && (
-          <ProductDetail 
-            product={selectedProduct}
-            loading={loading}
-          />
+          <Box sx={{ backgroundColor: '#ffffff', borderRadius: 2, p: 3 }}>
+            <ProductDetail 
+              product={selectedProduct}
+              loading={loading}
+            />
+          </Box>
         )}
       </Container>
     </Box>

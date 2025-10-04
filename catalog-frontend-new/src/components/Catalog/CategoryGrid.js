@@ -7,11 +7,8 @@ import {
   Typography,
   Box
 } from '@mui/material';
-import { useTheme, useMediaQuery } from '@mui/material';
 
 const CategoryGrid = ({ categories, onCategorySelect }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Box>
@@ -33,7 +30,8 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
           <Grid item xs={12} sm={6} md={3} key={category._id}>
             <Card 
               sx={{ 
-                height: '380px', // Sabit yükseklik
+                height: '350px', // TÜM KARTLAR AYNI
+                width: '100%',
                 cursor: 'pointer', 
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                 borderRadius: 2,
@@ -50,13 +48,14 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
               }}
               onClick={() => onCategorySelect(category)}
             >
-              {/* Görsel Container - Sabit Boyut */}
+              {/* GÖRSEL - KESİN AYNI BOYUT */}
               <Box 
                 sx={{ 
-                  height: '200px', // Sabit görsel yüksekliği
+                  height: '200px', // TÜM GÖRSELLER AYNI
+                  width: '100%',
                   overflow: 'hidden',
                   position: 'relative',
-                  flexShrink: 0 // Görsel boyutunun sabit kalmasını sağlar
+                  flexShrink: 0
                 }}
               >
                 <CardMedia
@@ -67,16 +66,8 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transition: 'transform 0.5s ease',
-                    '&:hover': {
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                  onError={(e) => {
-                    e.target.src = '/placeholder-category.jpg';
                   }}
                 />
-                {/* Alt kategori sayısı badge */}
                 {category.subcategories?.length > 0 && (
                   <Box
                     sx={{
@@ -97,49 +88,43 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                 )}
               </Box>
               
-              {/* İçerik Alanı - Sabit Yükseklik ve Text Wrap */}
+              {/* İÇERİK - KESİN AYNI BOYUT */}
               <CardContent 
                 sx={{ 
-                  flex: 1,
-                  p: 3,
+                  height: '150px', // TÜM İÇERİKLER AYNI
+                  p: 2,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   textAlign: 'center',
-                  overflow: 'hidden',
-                  minHeight: '180px' // Minimum içerik yüksekliği
+                  overflow: 'hidden'
                 }}
               >
-                {/* Kategori Adı - Text Wrap Özellikli */}
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* BAŞLIK - KESİN AYNI BOYUT */}
+                <Box sx={{ 
+                  height: '70px', // BAŞLIK ALANI AYNI
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}>
                   <Typography 
                     variant="h6" 
                     component="div" 
                     sx={{ 
                       fontWeight: 600,
                       display: '-webkit-box',
-                      WebkitLineClamp: 3, // Maksimum 3 satır
+                      WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      lineHeight: 1.3,
-                      wordBreak: 'break-word', // Uzun kelimeleri böler
-                      hyphens: 'auto' // Tire ile kelime bölme
+                      lineHeight: 1.3
                     }}
                   >
                     {category.name}
                   </Typography>
                 </Box>
                 
-                {/* Alt Kategori Bilgisi - Sabit Alt Alan */}
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{
-                    mt: 2,
-                    flexShrink: 0 // Alt alanın sabit kalmasını sağlar
-                  }}
-                >
+                <Typography variant="body2" color="text.secondary">
                   {category.subcategories?.length > 0 
                     ? `${category.subcategories.length} alt kategori` 
                     : 'Ürünleri görüntüle'}

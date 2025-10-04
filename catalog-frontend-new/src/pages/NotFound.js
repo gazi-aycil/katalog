@@ -1,8 +1,8 @@
 export default function NotFound() {
   return (
     <div>
-      <h1>404 Not Found</h1>
-      <p>The page you're looking for doesn't exist.</p>
+      <h1>HATA!</h1>
+      <p>Ulaşmaya çalıştığınız sayfa bulunamadı</p>
     </div>
   );
 }
