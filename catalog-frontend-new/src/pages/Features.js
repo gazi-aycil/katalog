@@ -35,7 +35,7 @@ const FEATURE_TYPES = {
 };
 
 // API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_BASE_URL = process.env.REACT_APP_API_URL ;
 
 // Excel'den alınan özellikler
 const EXCEL_FEATURES = {
