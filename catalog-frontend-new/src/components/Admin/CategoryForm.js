@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import {
-  TextField,
-  Button,
   Box,
-  IconButton,
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Paper,
   Avatar,
   Input,
-  Typography,
-  Paper,
-  Grid,
   CircularProgress,
-  Collapse,
-  Card,
-  CardContent,
+  Divider,
   Dialog,
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { Add, Delete, CloudUpload, ExpandMore, ExpandLess, Close } from '@mui/icons-material';
+import { TreeView, TreeItem } from '@mui/lab';
+import { Add, Delete, CloudUpload, ExpandMore, ChevronRight } from '@mui/icons-material';
 import { uploadProductImages } from '../../services/api';
 
 // Basit ID generator
@@ -29,195 +27,86 @@ const generateObjectId = () => {
   }
   return result;
 };
-// Basitleştirilmiş Alt Kategori Bileşeni
-const SubcategoryItem = ({ 
-  subcategory, 
-  index, 
-  onUpdate, 
-  onDelete, 
-  level = 0 
-}) => {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [newChildName, setNewChildName] = useState('');
-  const [uploading, setUploading] = useState(false);
 
-  const levelColors = ['#1976d2', '#7b1fa2', '#388e3c', '#f57c00'];
-  const currentColor = levelColors[level] || levelColors[3];
+// Kategori ağacını oluşturmak için yardımcı fonksiyon
+const renderTree = (nodes, handleSelect, selectedId) =>
+  nodes.map((node) => (
+    <TreeItem
+      key={node._id}
+      nodeId={node._id}
+      label={node.name}
+      onClick={() => handleSelect(node)}
+      sx={{
+        cursor: 'pointer',
+        '& .MuiTreeItem-label': {
+          bgcolor: node._id === selectedId ? 'primary.main' : 'transparent',
+          color: node._id === selectedId ? 'white' : 'inherit',
+          borderRadius: 1,
+          px: 1,
+        },
+      }}
+    >
+      {Array.isArray(node.subcategories) && node.subcategories.length > 0
+        ? renderTree(node.subcategories, handleSelect, selectedId)
+        : null}
+    </TreeItem>
+  ));
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      const formData = new FormData();
-      formData.append('images', file);
-      
-      const response = await uploadProductImages(formData);
-      if (response.data.imageUrls?.[0]) {
-        onUpdate(index, { ...subcategory, imageUrl: response.data.imageUrls[0] });
-      }
-    } catch (err) {
-      alert('Resim yüklenirken hata oluştu');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleAddChild = () => {
-    if (newChildName.trim()) {
-      const newChild = {
-        _id: generateObjectId(),
-        name: newChildName.trim(),
-        imageUrl: '',
-        subcategories: []
-      };
-
-      const updatedSubcategory = {
-        ...subcategory,
-        subcategories: [...(subcategory.subcategories || []), newChild]
-      };
-      
-      onUpdate(index, updatedSubcategory);
-      setNewChildName('');
-    }
-  };
-
-  const handleUpdateChild = (childIndex, updatedChild) => {
-    const updatedChildren = [...(subcategory.subcategories || [])];
-    updatedChildren[childIndex] = updatedChild;
-    onUpdate(index, { ...subcategory, subcategories: updatedChildren });
-  };
-
-  const handleDeleteChild = (childIndex) => {
-    const updatedChildren = (subcategory.subcategories || []).filter((_, i) => i !== childIndex);
-    onUpdate(index, { ...subcategory, subcategories: updatedChildren });
-  };
-
-  return (
-    <Box sx={{ mb: 1, ml: level * 2 }}>
-      {/* Kategori Kartı */}
-      <Card sx={{ borderLeft: `4px solid ${currentColor}`, mb: 1 }}>
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          {/* Üst Satır - İsim ve Kontroller */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
-            <TextField
-              size="small"
-              value={subcategory.name}
-              onChange={(e) => onUpdate(index, { ...subcategory, name: e.target.value })}
-              placeholder={`Kategori adı...`}
-              sx={{ flex: 1 }}
-            />
-            
-            <Button
-              component="label"
-              size="small"
-              disabled={uploading}
-              startIcon={uploading ? <CircularProgress size={16} /> : <CloudUpload />}
-            >
-              <Input type="file" hidden onChange={handleImageUpload} accept="image/*" />
-            </Button>
-
-            {(subcategory.subcategories?.length > 0 || level < 3) && (
-              <IconButton 
-                size="small" 
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                {isExpanded ? <ExpandLess /> : <ExpandMore />}
-              </IconButton>
-            )}
-
-            <IconButton size="small" color="error" onClick={() => onDelete(index)}>
-              <Delete />
-            </IconButton>
-          </Box>
-
-          {/* Resim Gösterimi */}
-          {subcategory.imageUrl && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Avatar src={subcategory.imageUrl} sx={{ width: 40, height: 40 }} />
-              <Typography variant="body2" color="success.main">
-                Resim yüklendi
-              </Typography>
-            </Box>
-          )}
-
-          {/* Alt Kategori Bilgisi */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              Seviye {level + 1}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {subcategory.subcategories?.length || 0} alt kategori
-            </Typography>
-          </Box>
-
-          {/* Alt Kategoriler */}
-          <Collapse in={isExpanded}>
-            <Box sx={{ mt: 1 }}>
-              {/* Mevcut Alt Kategoriler */}
-              {(subcategory.subcategories || []).map((child, childIndex) => (
-                <SubcategoryItem
-                  key={child._id}
-                  subcategory={child}
-                  index={childIndex}
-                  onUpdate={handleUpdateChild}
-                  onDelete={handleDeleteChild}
-                  level={level + 1}
-                />
-              ))}
-
-              {/* Yeni Alt Kategori Ekleme */}
-              {level < 3 && (
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <TextField
-                    size="small"
-                    placeholder="Yeni alt kategori..."
-                    value={newChildName}
-                    onChange={(e) => setNewChildName(e.target.value)}
-                    sx={{ flex: 1 }}
-                  />
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={handleAddChild}
-                    disabled={!newChildName.trim()}
-                    startIcon={<Add />}
-                  >
-                    Ekle
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </Collapse>
-        </CardContent>
-      </Card>
-    </Box>
-  );
-};
-
-// Ana Kategori Form Bileşeni
 export default function CategoryForm({ category, onSave, onCancel, open = true }) {
-  const [name, setName] = useState(category?.name || '');
-  const [subcategories, setSubcategories] = useState(category?.subcategories || []);
-  const [newSubcategory, setNewSubcategory] = useState('');
-  const [categoryImage, setCategoryImage] = useState(category?.imageUrl || '');
+  const [rootCategory, setRootCategory] = useState(category || {
+    _id: generateObjectId(),
+    name: '',
+    imageUrl: '',
+    subcategories: [],
+  });
+  const [selectedCategory, setSelectedCategory] = useState(rootCategory);
   const [uploading, setUploading] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+
+  // ----------- Yardımcı Fonksiyonlar -----------
+
+  const updateCategoryRecursive = (parent, updated) => {
+    if (parent._id === updated._id) return updated;
+    if (!parent.subcategories) return parent;
+    return {
+      ...parent,
+      subcategories: parent.subcategories.map((child) =>
+        updateCategoryRecursive(child, updated)
+      ),
+    };
+  };
+
+  const deleteCategoryRecursive = (parent, idToDelete) => {
+    return {
+      ...parent,
+      subcategories: parent.subcategories
+        .filter((child) => child._id !== idToDelete)
+        .map((child) => deleteCategoryRecursive(child, idToDelete)),
+    };
+  };
+
+  const handleSelect = (node) => {
+    setSelectedCategory(node);
+  };
+
+  const handleUpdateCategory = (field, value) => {
+    const updated = { ...selectedCategory, [field]: value };
+    setSelectedCategory(updated);
+    setRootCategory((prev) => updateCategoryRecursive(prev, updated));
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     try {
       setUploading(true);
       const formData = new FormData();
       formData.append('images', file);
-      
       const response = await uploadProductImages(formData);
       if (response.data.imageUrls?.[0]) {
-        setCategoryImage(response.data.imageUrls[0]);
+        handleUpdateCategory('imageUrl', response.data.imageUrls[0]);
       }
-    } catch (err) {
+    } catch {
       alert('Resim yüklenirken hata oluştu');
     } finally {
       setUploading(false);
@@ -225,137 +114,187 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
   };
 
   const handleAddSubcategory = () => {
-    if (newSubcategory.trim()) {
-      const newSubcat = {
-        _id: generateObjectId(),
-        name: newSubcategory.trim(),
-        imageUrl: '',
-        subcategories: []
-      };
-      setSubcategories([...subcategories, newSubcat]);
-      setNewSubcategory('');
+    if (!newSubcategoryName.trim()) return;
+    const newSub = {
+      _id: generateObjectId(),
+      name: newSubcategoryName.trim(),
+      imageUrl: '',
+      subcategories: [],
+    };
+    const updated = {
+      ...selectedCategory,
+      subcategories: [...(selectedCategory.subcategories || []), newSub],
+    };
+    setSelectedCategory(updated);
+    setRootCategory((prev) => updateCategoryRecursive(prev, updated));
+    setNewSubcategoryName('');
+  };
+
+  const handleDeleteCategory = () => {
+    if (selectedCategory._id === rootCategory._id) {
+      alert('Ana kategoriyi silemezsiniz.');
+      return;
     }
-  };
-
-  const handleUpdateSubcategory = (index, updatedSubcategory) => {
-    const updated = [...subcategories];
-    updated[index] = updatedSubcategory;
-    setSubcategories(updated);
-  };
-
-  const handleDeleteSubcategory = (index) => {
-    setSubcategories(subcategories.filter((_, i) => i !== index));
+    setRootCategory((prev) => deleteCategoryRecursive(prev, selectedCategory._id));
+    setSelectedCategory(rootCategory);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const categoryData = {
-      name: name.trim(),
-      imageUrl: categoryImage,
-      subcategories: subcategories
-    };
-    onSave(categoryData);
+    onSave(rootCategory);
   };
+
+  // ----------- Arayüz -----------
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogContent sx={{ p: 2 }}>
-        <Box component="form" onSubmit={handleSubmit}>
-          
-          {/* Ana Kategori */}
-          <Paper sx={{ p: 2, mb: 2 }}>
+      <DialogContent sx={{ p: 0 }}>
+        <Grid container>
+          {/* Sol panel - Kategori ağacı */}
+          <Grid item xs={4} sx={{ borderRight: '1px solid #eee', p: 2, height: '70vh', overflowY: 'auto' }}>
             <Typography variant="h6" gutterBottom>
-              Ana Kategori
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
-              <TextField
-                label="Kategori Adı *"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                size="small"
-                sx={{ flex: 1 }}
-              />
-              
-              <Button
-                component="label"
-                variant="outlined"
-                size="small"
-                disabled={uploading}
-                startIcon={<CloudUpload />}
-              >
-                <Input type="file" hidden onChange={handleImageUpload} accept="image/*" />
-              </Button>
-            </Box>
-
-            {categoryImage && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar src={categoryImage} sx={{ width: 40, height: 40 }} />
-                <Typography variant="body2" color="success.main">
-                  Ana kategori resmi yüklendi
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-
-          {/* Alt Kategoriler */}
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Alt Kategoriler
+              Kategori Ağacı
             </Typography>
 
-            {/* Yeni Alt Kategori Ekleme */}
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <TextField
-                size="small"
-                placeholder="Yeni alt kategori adı..."
-                value={newSubcategory}
-                onChange={(e) => setNewSubcategory(e.target.value)}
-                sx={{ flex: 1 }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleAddSubcategory}
-                disabled={!newSubcategory.trim()}
-                startIcon={<Add />}
+            {rootCategory ? (
+              <TreeView
+                defaultExpandAll
+                defaultCollapseIcon={<ExpandMore />}
+                defaultExpandIcon={<ChevronRight />}
+                sx={{ flexGrow: 1, overflowY: 'auto' }}
               >
-                Ekle
-              </Button>
-            </Box>
-
-            {/* Alt Kategori Listesi */}
-            {subcategories.length > 0 ? (
-              <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
-                {subcategories.map((subcat, index) => (
-                  <SubcategoryItem
-                    key={subcat._id}
-                    subcategory={subcat}
-                    index={index}
-                    onUpdate={handleUpdateSubcategory}
-                    onDelete={handleDeleteSubcategory}
-                  />
-                ))}
-              </Box>
+                {renderTree([rootCategory], handleSelect, selectedCategory._id)}
+              </TreeView>
             ) : (
-              <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
-                Henüz alt kategori eklenmemiş
-              </Typography>
+              <Typography color="text.secondary">Henüz kategori yok</Typography>
             )}
-          </Paper>
-        </Box>
+          </Grid>
+
+          {/* Sağ panel - Kategori düzenleme */}
+          <Grid item xs={8} sx={{ p: 3 }}>
+            {selectedCategory ? (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  {selectedCategory._id === rootCategory._id
+                    ? 'Ana Kategori Düzenleme'
+                    : 'Alt Kategori Düzenleme'}
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Kategori Adı"
+                    value={selectedCategory.name}
+                    onChange={(e) => handleUpdateCategory('name', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      size="small"
+                      startIcon={
+                        uploading ? <CircularProgress size={16} /> : <CloudUpload />
+                      }
+                      disabled={uploading}
+                    >
+                      Resim Yükle
+                      <Input type="file" hidden onChange={handleImageUpload} accept="image/*" />
+                    </Button>
+                    {selectedCategory.imageUrl && (
+                      <Avatar src={selectedCategory.imageUrl} sx={{ width: 50, height: 50 }} />
+                    )}
+                  </Box>
+
+                  <Divider />
+
+                  {/* Alt kategori ekleme */}
+                  <Typography variant="subtitle1">Alt Kategoriler</Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField
+                      size="small"
+                      placeholder="Yeni alt kategori..."
+                      value={newSubcategoryName}
+                      onChange={(e) => setNewSubcategoryName(e.target.value)}
+                      sx={{ flex: 1 }}
+                    />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleAddSubcategory}
+                      startIcon={<Add />}
+                      disabled={!newSubcategoryName.trim()}
+                    >
+                      Ekle
+                    </Button>
+                  </Box>
+
+                  {selectedCategory.subcategories?.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                      {selectedCategory.subcategories.map((sub) => (
+                        <Paper
+                          key={sub._id}
+                          sx={{
+                            p: 1,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'grey.100' },
+                          }}
+                          onClick={() => handleSelect(sub)}
+                        >
+                          <Typography>{sub.name}</Typography>
+                          <Delete
+                            fontSize="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updated = {
+                                ...selectedCategory,
+                                subcategories: selectedCategory.subcategories.filter(
+                                  (s) => s._id !== sub._id
+                                ),
+                              };
+                              setSelectedCategory(updated);
+                              setRootCategory((prev) => updateCategoryRecursive(prev, updated));
+                            }}
+                          />
+                        </Paper>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2" mt={1}>
+                      Alt kategori bulunmuyor.
+                    </Typography>
+                  )}
+
+                  {selectedCategory._id !== rootCategory._id && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={handleDeleteCategory}
+                      startIcon={<Delete />}
+                      sx={{ mt: 2, alignSelf: 'flex-start' }}
+                    >
+                      Bu Kategoriyi Sil
+                    </Button>
+                  )}
+                </Box>
+              </>
+            ) : (
+              <Typography color="text.secondary">Bir kategori seçin.</Typography>
+            )}
+          </Grid>
+        </Grid>
       </DialogContent>
 
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onCancel} color="error">
           İptal
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          disabled={!name.trim()}
-        >
+        <Button variant="contained" onClick={handleSubmit}>
           Kaydet
         </Button>
       </DialogActions>
