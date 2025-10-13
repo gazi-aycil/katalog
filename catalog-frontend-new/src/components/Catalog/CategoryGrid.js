@@ -9,12 +9,10 @@ import {
 } from '@mui/material';
 
 const CategoryGrid = ({ categories, onCategorySelect }) => {
-  // categories prop'unu kontrol et ve güvenli hale getir
   const safeCategories = Array.isArray(categories) ? categories : [];
 
   console.log('📊 CategoryGrid - Kategori Sayısı:', safeCategories.length);
 
-  // Eğer kategori yoksa mesaj göster
   if (safeCategories.length === 0) {
     return (
       <Box textAlign="center" py={10}>
@@ -42,38 +40,54 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
       >
         Ürün Kataloğu
       </Typography>
-      
-      <Grid container spacing={3}>
+
+      {/* KATEGORİ GRID */}
+      <Grid 
+        container 
+        spacing={3} 
+        justifyContent="center"
+      >
         {safeCategories.map((category, index) => (
-          <Grid item xs={12} sm={6} md={3} key={category._id || index}>
+          <Grid 
+            item 
+            xs={12} 
+            sm={6} 
+            md={3} 
+            key={category._id || index}
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
             <Card 
               sx={{ 
-                height: '320px', // SABİT YÜKSEKLİK
-                width: '100%',
+                width: 260,               // SABİT GENİŞLİK
+                height: 340,              // SABİT YÜKSEKLİK
                 cursor: 'pointer', 
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                 borderRadius: 2,
                 overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
                 border: '1px solid',
                 borderColor: 'divider',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                backgroundColor: '#fff',
                 '&:hover': {
-                  transform: 'translateY(-8px)',
+                  transform: 'translateY(-6px)',
                   boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
                   borderColor: 'primary.main'
                 }
               }}
               onClick={() => onCategorySelect(category)}
             >
-              {/* GÖRSEL - SABİT BOYUT */}
+              {/* FOTOĞRAF ALANI */}
               <Box 
                 sx={{ 
-                  height: '180px', // SABİT GÖRSEL YÜKSEKLİĞİ
+                  height: 180,             // SABİT FOTOĞRAF YÜKSEKLİĞİ
                   width: '100%',
                   overflow: 'hidden',
                   position: 'relative',
-                  flexShrink: 0,
                   backgroundColor: '#f5f5f5'
                 }}
               >
@@ -84,7 +98,7 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                   sx={{ 
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover', // Görseli kırparak sığdır
+                    objectFit: 'cover',    // ORANI KORUYARAK KIRP
                     objectPosition: 'center'
                   }}
                   onError={(e) => {
@@ -111,72 +125,57 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                   </Box>
                 )}
               </Box>
-              
-              {/* İÇERİK - SABİT BOYUT */}
+
+              {/* METİN ALANI */}
               <CardContent 
                 sx={{ 
-                  height: '140px', // SABİT İÇERİK YÜKSEKLİĞİ
-                  p: 2,
+                  flexGrow: 1,
+                  px: 2,
+                  py: 1.5,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   textAlign: 'center',
                   overflow: 'hidden',
-                  flex: 1
                 }}
               >
-                {/* KATEGORİ İSMİ - OTOMATİK YAZI BÜYÜKLÜĞÜ */}
-                <Box sx={{ 
-                  minHeight: '60px',
-                  maxHeight: '60px',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="h6" 
-                    component="div" 
-                    sx={{ 
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2, // Maksimum 2 satır
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      wordBreak: 'break-word',
-                      fontSize: '1rem', // SABİT YAZI BOYUTU
-                      maxHeight: '48px' // 2 satır için maksimum yükseklik
-                    }}
-                  >
-                    {category.name}
-                  </Typography>
-                </Box>
-                
+                {/* KATEGORİ İSMİ */}
+                <Typography 
+                  variant="h6" 
+                  component="div" 
+                  sx={{ 
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2, 
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-word',
+                    fontSize: '1rem',
+                    mb: 1
+                  }}
+                >
+                  {category.name}
+                </Typography>
+
                 {/* ALT KATEGORİ BİLGİSİ */}
-                <Box sx={{ 
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {category.subcategories?.length > 0 
-                      ? `${category.subcategories.length} alt kategori` 
-                      : 'Ürünleri görüntüle'}
-                  </Typography>
-                </Box>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {category.subcategories?.length > 0 
+                    ? `${category.subcategories.length} alt kategori` 
+                    : 'Ürünleri görüntüle'}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
