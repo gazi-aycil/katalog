@@ -32,7 +32,6 @@ function CategoryDialog({ open, onClose, onSave, initialData, isRootCreation }) 
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
   const [uploading, setUploading] = useState(false);
 
-  // Eğer dialog yeniden açıldığında initialData değişmişse inputları güncellemek mantıklı.
   React.useEffect(() => {
     setName(initialData?.name || '');
     setImageUrl(initialData?.imageUrl || '');
@@ -108,23 +107,16 @@ function CategoryDialog({ open, onClose, onSave, initialData, isRootCreation }) 
 
 // --- Ana bileşen ---
 export default function CategoryForm({ category, onSave, onCancel, open = true }) {
-  /**
-   * Yeni mantık:
-   * - rootCategory: null veya bir obje. İlk oluşturulan kategori root olacak.
-   * - currentPath: breadcrumb stack (rootCategory dahil). currentLevel = son eleman veya rootCategory.
-   */
-
   const [rootCategory, setRootCategory] = useState(category || null);
-  const [currentPath, setCurrentPath] = useState([]); // stack: [ ...ancestors ], son eleman currentLevel
+  const [currentPath, setCurrentPath] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [isRootCreation, setIsRootCreation] = useState(false);
 
-  // Aktif seviye (gösterilen liste)
+  // Aktif seviye
   const currentLevel = (() => {
     if (!rootCategory) return { subcategories: [] };
     if (currentPath.length === 0) return rootCategory;
-    // find by ids in path: reduce from root
     let node = rootCategory;
     for (const p of currentPath) {
       node = node.subcategories?.find((s) => s._id === p._id) || node;
@@ -132,7 +124,7 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
     return node;
   })();
 
-  // Utility: recursive update by id
+  // Recursive update
   const updateById = (node, updated) => {
     if (!node) return node;
     if (node._id === updated._id) return updated;
@@ -140,7 +132,7 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
     return { ...node, subcategories: node.subcategories.map((c) => updateById(c, updated)) };
   };
 
-  // Utility: recursive remove by id
+  // Recursive remove
   const removeById = (node, idToRemove) => {
     if (!node) return node;
     return {
@@ -152,23 +144,15 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
   };
 
   // --- Handlers ---
-
-  // 1) Ekleme: iki durum var
-  // - Eğer rootCategory yok ve isRootCreation true -> oluşturulan obje rootCategory olur.
-  // - Aksi halde, ekleme currentLevel.subcategories'a yapılır.
   const handleAddCategory = (newCat) => {
     if (!rootCategory && isRootCreation) {
-      // ilk oluşturulan root
       setRootCategory({ ...newCat, subcategories: newCat.subcategories || [] });
       setDialogOpen(false);
       setIsRootCreation(false);
-      // reset path to root (empty)
       setCurrentPath([]);
       return;
     }
 
-    // normal alt kategori ekleme
-    // güncel currentLevel'in subcategories dizisine yeni öğe ekle
     const updatedLevel = {
       ...currentLevel,
       subcategories: [...(currentLevel.subcategories || []), { ...newCat, subcategories: newCat.subcategories || [] }],
@@ -177,20 +161,21 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
     const updatedRoot = updateById(rootCategory, updatedLevel);
     setRootCategory(updatedRoot);
     setDialogOpen(false);
-    // otomatik olarak yeni eklenen kategoriye inmek istenirse buraya ek kod konabilir; şu an kalınır.
   };
 
-  // 2) Düzenleme - her seviye için geçerli
   const handleEditCategory = (updated) => {
-    const updatedRoot = updateById(rootCategory, updated);
-    setRootCategory(updatedRoot);
+    if (rootCategory && updated._id === rootCategory._id) {
+      setRootCategory({ ...updated });
+    } else {
+      const updatedRoot = updateById(rootCategory, updated);
+      setRootCategory(updatedRoot);
+    }
+
     setDialogOpen(false);
     setEditItem(null);
   };
 
-  // 3) Silme
   const handleDeleteCategory = (id) => {
-    // Eğer silinmek istenen root ise rootCategory = null
     if (rootCategory && rootCategory._id === id) {
       setRootCategory(null);
       setCurrentPath([]);
@@ -200,31 +185,23 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
     const updatedRoot = removeById(rootCategory, id);
     setRootCategory(updatedRoot);
 
-    // eğer seçili path içinde bu id varsa path'ten temizle
     const indexInPath = currentPath.findIndex((p) => p._id === id);
-    if (indexInPath >= 0) {
-      setCurrentPath((prev) => prev.slice(0, indexInPath));
-    }
+    if (indexInPath >= 0) setCurrentPath((prev) => prev.slice(0, indexInPath));
   };
 
-  // 4) Alt kategorilere git
   const handleOpenSubcategories = (item) => {
     setCurrentPath((prev) => [...prev, item]);
   };
 
-  // 5) Breadcrumb tıklama
   const handleBreadcrumbClick = (index) => {
     setCurrentPath((prev) => prev.slice(0, index + 1));
   };
 
-  // 6) Save tüm ağaç
   const handleSaveAll = () => {
     if (!rootCategory) return alert('Kök kategori oluşturmanız gerekiyor.');
-    // backend muhtemelen rootCategory yapısını bekliyor
     onSave(rootCategory);
   };
 
-  // Render
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
       <DialogTitle>Kategori Yönetimi</DialogTitle>
@@ -232,34 +209,18 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
       <DialogContent>
         {/* Breadcrumb */}
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link
-            underline="hover"
-            color={currentPath.length === 0 ? 'text.primary' : 'inherit'}
-            onClick={() => setCurrentPath([])}
-            sx={{ cursor: 'pointer' }}
-          >
+          <Link underline="hover" color="text.primary" onClick={() => setCurrentPath([])} sx={{ cursor: 'pointer' }}>
             Ana Kategori
           </Link>
 
           {rootCategory && (
-            <Link
-              underline="hover"
-              color={currentPath.length === 0 ? 'text.primary' : 'inherit'}
-              onClick={() => setCurrentPath([])}
-              sx={{ cursor: 'pointer' }}
-            >
+            <Link underline="hover" color={currentPath.length === 0 ? 'text.primary' : 'inherit'} onClick={() => setCurrentPath([])} sx={{ cursor: 'pointer' }}>
               {rootCategory.name}
             </Link>
           )}
 
           {currentPath.map((cat, index) => (
-            <Link
-              key={cat._id}
-              underline="hover"
-              color={index === currentPath.length - 1 ? 'text.primary' : 'inherit'}
-              onClick={() => handleBreadcrumbClick(index)}
-              sx={{ cursor: 'pointer' }}
-            >
+            <Link key={cat._id} underline="hover" color={index === currentPath.length - 1 ? 'text.primary' : 'inherit'} onClick={() => handleBreadcrumbClick(index)} sx={{ cursor: 'pointer' }}>
               {cat.name}
             </Link>
           ))}
@@ -268,35 +229,20 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
         {/* Üst araç çubuğu */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">
-            { !rootCategory ? 'Henüz kök kategori yok' :
-              currentPath.length === 0 ? `${rootCategory.name} Alt Kategorileri` :
-              `${currentLevel.name} Alt Kategorileri`
-            }
+            {!rootCategory
+              ? 'Henüz kök kategori yok'
+              : currentPath.length === 0
+              ? `${rootCategory.name} Alt Kategorileri`
+              : `${currentLevel.name} Alt Kategorileri`}
           </Typography>
 
           <Box>
             {!rootCategory ? (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => {
-                  setIsRootCreation(true);
-                  setEditItem(null);
-                  setDialogOpen(true);
-                }}
-              >
+              <Button variant="contained" startIcon={<Add />} onClick={() => { setIsRootCreation(true); setEditItem(null); setDialogOpen(true); }}>
                 Kök Kategori Oluştur
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => {
-                  setIsRootCreation(false);
-                  setEditItem(null);
-                  setDialogOpen(true);
-                }}
-              >
+              <Button variant="contained" startIcon={<Add />} onClick={() => { setIsRootCreation(false); setEditItem(null); setDialogOpen(true); }}>
                 Yeni Kategori
               </Button>
             )}
@@ -305,7 +251,7 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
 
         {/* Liste */}
         <Box>
-          {(!rootCategory) ? (
+          {!rootCategory ? (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body1" gutterBottom>
                 Henüz bir kök kategori oluşturulmamış. Lütfen önce kök kategori oluşturun.
@@ -323,16 +269,7 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
               ) : (
                 <Stack spacing={1}>
                   {currentLevel.subcategories.map((cat) => (
-                    <Paper
-                      key={cat._id}
-                      sx={{
-                        p: 1.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        '&:hover': { bgcolor: 'grey.50' },
-                      }}
-                    >
+                    <Paper key={cat._id} sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: 'grey.50' } }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar src={cat.imageUrl} sx={{ width: 44, height: 44 }} />
                         <Typography>{cat.name}</Typography>
@@ -343,22 +280,11 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
                           Alt Kategorilere Git
                         </Button>
 
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setEditItem(cat);
-                            setIsRootCreation(false);
-                            setDialogOpen(true);
-                          }}
-                        >
+                        <IconButton size="small" onClick={() => { setEditItem(cat); setIsRootCreation(false); setDialogOpen(true); }}>
                           <Edit fontSize="small" />
                         </IconButton>
 
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteCategory(cat._id)}
-                        >
+                        <IconButton size="small" color="error" onClick={() => handleDeleteCategory(cat._id)}>
                           <Delete fontSize="small" />
                         </IconButton>
                       </Box>
@@ -387,11 +313,7 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
       {/* Popup */}
       <CategoryDialog
         open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setEditItem(null);
-          setIsRootCreation(false);
-        }}
+        onClose={() => { setDialogOpen(false); setEditItem(null); setIsRootCreation(false); }}
         onSave={editItem ? handleEditCategory : handleAddCategory}
         initialData={editItem}
         isRootCreation={isRootCreation}
