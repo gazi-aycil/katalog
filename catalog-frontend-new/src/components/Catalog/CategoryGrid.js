@@ -12,6 +12,9 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
   // categories prop'unu kontrol et ve güvenli hale getir
   const safeCategories = Array.isArray(categories) ? categories : [];
 
+  console.log('📊 CategoryGrid - Kategori Sayısı:', safeCategories.length);
+  console.log('🔍 CategoryGrid - Kategori Verisi:', safeCategories);
+
   // Eğer kategori yoksa mesaj göster
   if (safeCategories.length === 0) {
     return (
@@ -42,8 +45,8 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
       </Typography>
       
       <Grid container spacing={3}>
-        {safeCategories.map((category) => (
-          <Grid item xs={12} sm={6} md={3} key={category._id}>
+        {safeCategories.map((category, index) => (
+          <Grid item xs={12} sm={6} md={3} key={category._id || index}>
             <Card 
               sx={{ 
                 height: '350px',

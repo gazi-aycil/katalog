@@ -39,45 +39,51 @@ const CatalogFrontend = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Kategorileri yükle
+  // Kategorileri yükle - DÜZELTİLMİŞ VERSİYON
   useEffect(() => {
- // CatalogFrontend.js - fetchCategories fonksiyonunu güncelle
-const fetchCategories = async () => {
-  try {
-    setLoading(true);
-    const response = await getCategories();
-    
-    console.log('🔍 API Yanıtı:', response);
-    console.log('📦 Kategori Verisi:', response.data);
-    
-    // API yanıt formatını kontrol et ve düzelt
-    let categoriesData = response.data;
-    
-    // Farklı olası response formatları
-    if (response.data && Array.isArray(response.data)) {
-      // Doğrudan array geliyorsa
-      categoriesData = response.data;
-    } else if (response.data && response.data.categories && Array.isArray(response.data.categories)) {
-      // { categories: [] } formatında geliyorsa
-      categoriesData = response.data.categories;
-    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-      // { data: [] } formatında geliyorsa
-      categoriesData = response.data.data;
-    } else {
-      // Hiçbiri değilse boş array kullan
-      console.warn('⚠️ Beklenmeyen API formatı, boş array kullanılıyor');
-      categoriesData = [];
-    }
-    
-    console.log('✅ İşlenmiş Kategoriler:', categoriesData);
-    setCategories(categoriesData);
-    setLoading(false);
-  } catch (err) {
-    console.error('❌ Kategori yükleme hatası:', err);
-    setError('Kategoriler yüklenirken hata oluştu: ' + err.message);
-    setLoading(false);
-  }
-};
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        console.log('🟡 Kategoriler yükleniyor...');
+        
+        const response = await getCategories();
+        
+        console.log('🔍 API Yanıtı:', response);
+        console.log('📦 Kategori Verisi:', response.data);
+        
+        // API yanıt formatını kontrol et ve düzelt
+        let categoriesData = [];
+        
+        if (response.data) {
+          // Farklı olası response formatları
+          if (Array.isArray(response.data)) {
+            // Doğrudan array geliyorsa
+            categoriesData = response.data;
+          } else if (response.data.categories && Array.isArray(response.data.categories)) {
+            // { categories: [] } formatında geliyorsa
+            categoriesData = response.data.categories;
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            // { data: [] } formatında geliyorsa
+            categoriesData = response.data.data;
+          } else {
+            // Hiçbiri değilse boş array kullan
+            console.warn('⚠️ Beklenmeyen API formatı, boş array kullanılıyor');
+            categoriesData = [];
+          }
+        }
+        
+        console.log('✅ İşlenmiş Kategoriler:', categoriesData);
+        console.log('📊 Kategori Sayısı:', categoriesData.length);
+        
+        // Kategorileri state'e kaydet
+        setCategories(categoriesData);
+        setLoading(false);
+      } catch (err) {
+        console.error('❌ Kategori yükleme hatası:', err);
+        setError('Kategoriler yüklenirken hata oluştu: ' + (err.message || 'Bilinmeyen hata'));
+        setLoading(false);
+      }
+    };
     
     fetchCategories();
   }, []);
@@ -245,6 +251,7 @@ const fetchCategories = async () => {
       }
     }
   };
+
   const renderSubcategories = () => {
     const currentCategory = selectedSubcategory || selectedCategory;
     if (!currentCategory || !currentCategory.subcategories) return null;
@@ -265,7 +272,7 @@ const fetchCategories = async () => {
             <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
               <Card 
                 sx={{ 
-                  height: '350px', // TÜM KARTLAR AYNI
+                  height: '350px',
                   width: '100%',
                   cursor: 'pointer', 
                   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -286,7 +293,7 @@ const fetchCategories = async () => {
                 {/* GÖRSEL - KESİN AYNI BOYUT */}
                 <Box 
                   sx={{ 
-                    height: '200px', // TÜM GÖRSELLER AYNI
+                    height: '200px',
                     width: '100%',
                     overflow: 'hidden',
                     position: 'relative',
@@ -308,7 +315,7 @@ const fetchCategories = async () => {
                 {/* İÇERİK - KESİN AYNI BOYUT */}
                 <CardContent 
                   sx={{ 
-                    height: '150px', // TÜM İÇERİKLER AYNI
+                    height: '150px',
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
@@ -318,7 +325,7 @@ const fetchCategories = async () => {
                   }}
                 >
                   <Box sx={{ 
-                    height: '70px', // BAŞLIK ALANI AYNI
+                    height: '70px',
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
