@@ -242,9 +242,22 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
                 Kök Kategori Oluştur
               </Button>
             ) : (
-              <Button variant="contained" startIcon={<Add />} onClick={() => { setIsRootCreation(false); setEditItem(null); setDialogOpen(true); }}>
-                Yeni Kategori
-              </Button>
+              <>
+                <Button variant="contained" startIcon={<Add />} onClick={() => { setIsRootCreation(false); setEditItem(null); setDialogOpen(true); }}>
+                  Yeni Kategori
+                </Button>
+                {/* Root Edit Butonu */}
+                {currentPath.length === 0 && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Edit />}
+                    sx={{ ml: 1 }}
+                    onClick={() => { setEditItem(rootCategory); setIsRootCreation(false); setDialogOpen(true); }}
+                  >
+                    Kök Kategoriyi Düzenle
+                  </Button>
+                )}
+              </>
             )}
           </Box>
         </Box>
