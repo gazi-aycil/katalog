@@ -9,6 +9,22 @@ import {
 } from '@mui/material';
 
 const CategoryGrid = ({ categories, onCategorySelect }) => {
+  // categories prop'unu kontrol et ve güvenli hale getir
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  // Eğer kategori yoksa mesaj göster
+  if (safeCategories.length === 0) {
+    return (
+      <Box textAlign="center" py={10}>
+        <Typography variant="h6" color="text.secondary">
+          Kategori bulunamadı
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Henüz hiç kategori eklenmemiş.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -26,11 +42,11 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
       </Typography>
       
       <Grid container spacing={3}>
-        {categories.map((category) => (
+        {safeCategories.map((category) => (
           <Grid item xs={12} sm={6} md={3} key={category._id}>
             <Card 
               sx={{ 
-                height: '350px', // TÜM KARTLAR AYNI
+                height: '350px',
                 width: '100%',
                 cursor: 'pointer', 
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -48,10 +64,10 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
               }}
               onClick={() => onCategorySelect(category)}
             >
-              {/* GÖRSEL - KESİN AYNI BOYUT */}
+              {/* GÖRSEL */}
               <Box 
                 sx={{ 
-                  height: '200px', // TÜM GÖRSELLER AYNI
+                  height: '200px',
                   width: '100%',
                   overflow: 'hidden',
                   position: 'relative',
@@ -88,10 +104,10 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                 )}
               </Box>
               
-              {/* İÇERİK - KESİN AYNI BOYUT */}
+              {/* İÇERİK */}
               <CardContent 
                 sx={{ 
-                  height: '150px', // TÜM İÇERİKLER AYNI
+                  height: '150px',
                   p: 2,
                   display: 'flex',
                   flexDirection: 'column',
@@ -100,9 +116,8 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                   overflow: 'hidden'
                 }}
               >
-                {/* BAŞLIK - KESİN AYNI BOYUT */}
                 <Box sx={{ 
-                  height: '70px', // BAŞLIK ALANI AYNI
+                  height: '70px',
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center' 

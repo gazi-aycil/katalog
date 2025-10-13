@@ -41,17 +41,43 @@ const CatalogFrontend = () => {
 
   // Kategorileri yükle
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        const response = await getCategories();
-        setCategories(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Kategoriler yüklenirken hata oluştu');
-        setLoading(false);
-      }
-    };
+ // CatalogFrontend.js - fetchCategories fonksiyonunu güncelle
+const fetchCategories = async () => {
+  try {
+    setLoading(true);
+    const response = await getCategories();
+    
+    console.log('🔍 API Yanıtı:', response);
+    console.log('📦 Kategori Verisi:', response.data);
+    
+    // API yanıt formatını kontrol et ve düzelt
+    let categoriesData = response.data;
+    
+    // Farklı olası response formatları
+    if (response.data && Array.isArray(response.data)) {
+      // Doğrudan array geliyorsa
+      categoriesData = response.data;
+    } else if (response.data && response.data.categories && Array.isArray(response.data.categories)) {
+      // { categories: [] } formatında geliyorsa
+      categoriesData = response.data.categories;
+    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // { data: [] } formatında geliyorsa
+      categoriesData = response.data.data;
+    } else {
+      // Hiçbiri değilse boş array kullan
+      console.warn('⚠️ Beklenmeyen API formatı, boş array kullanılıyor');
+      categoriesData = [];
+    }
+    
+    console.log('✅ İşlenmiş Kategoriler:', categoriesData);
+    setCategories(categoriesData);
+    setLoading(false);
+  } catch (err) {
+    console.error('❌ Kategori yükleme hatası:', err);
+    setError('Kategoriler yüklenirken hata oluştu: ' + err.message);
+    setLoading(false);
+  }
+};
     
     fetchCategories();
   }, []);
