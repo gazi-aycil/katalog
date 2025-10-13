@@ -13,7 +13,6 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
   const safeCategories = Array.isArray(categories) ? categories : [];
 
   console.log('📊 CategoryGrid - Kategori Sayısı:', safeCategories.length);
-  console.log('🔍 CategoryGrid - Kategori Verisi:', safeCategories);
 
   // Eğer kategori yoksa mesaj göster
   if (safeCategories.length === 0) {
@@ -49,7 +48,7 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
           <Grid item xs={12} sm={6} md={3} key={category._id || index}>
             <Card 
               sx={{ 
-                height: '350px',
+                height: '320px', // SABİT YÜKSEKLİK
                 width: '100%',
                 cursor: 'pointer', 
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -67,14 +66,15 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
               }}
               onClick={() => onCategorySelect(category)}
             >
-              {/* GÖRSEL */}
+              {/* GÖRSEL - SABİT BOYUT */}
               <Box 
                 sx={{ 
-                  height: '200px',
+                  height: '180px', // SABİT GÖRSEL YÜKSEKLİĞİ
                   width: '100%',
                   overflow: 'hidden',
                   position: 'relative',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  backgroundColor: '#f5f5f5'
                 }}
               >
                 <CardMedia
@@ -84,7 +84,11 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                   sx={{ 
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
+                    objectFit: 'cover', // Görseli kırparak sığdır
+                    objectPosition: 'center'
+                  }}
+                  onError={(e) => {
+                    e.target.src = '/placeholder-category.jpg';
                   }}
                 />
                 {category.subcategories?.length > 0 && (
@@ -99,7 +103,8 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                       py: 0.5,
                       borderRadius: 1,
                       fontSize: '0.75rem',
-                      fontWeight: 600
+                      fontWeight: 600,
+                      zIndex: 1
                     }}
                   >
                     {category.subcategories.length} alt kategori
@@ -107,46 +112,71 @@ const CategoryGrid = ({ categories, onCategorySelect }) => {
                 )}
               </Box>
               
-              {/* İÇERİK */}
+              {/* İÇERİK - SABİT BOYUT */}
               <CardContent 
                 sx={{ 
-                  height: '150px',
+                  height: '140px', // SABİT İÇERİK YÜKSEKLİĞİ
                   p: 2,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   textAlign: 'center',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  flex: 1
                 }}
               >
+                {/* KATEGORİ İSMİ - OTOMATİK YAZI BÜYÜKLÜĞÜ */}
                 <Box sx={{ 
-                  height: '70px',
+                  minHeight: '60px',
+                  maxHeight: '60px',
                   display: 'flex', 
                   alignItems: 'center', 
-                  justifyContent: 'center' 
+                  justifyContent: 'center',
+                  overflow: 'hidden'
                 }}>
                   <Typography 
                     variant="h6" 
                     component="div" 
                     sx={{ 
                       fontWeight: 600,
+                      lineHeight: 1.3,
                       display: '-webkit-box',
-                      WebkitLineClamp: 2,
+                      WebkitLineClamp: 2, // Maksimum 2 satır
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      lineHeight: 1.3
+                      wordBreak: 'break-word',
+                      fontSize: '1rem', // SABİT YAZI BOYUTU
+                      maxHeight: '48px' // 2 satır için maksimum yükseklik
                     }}
                   >
                     {category.name}
                   </Typography>
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary">
-                  {category.subcategories?.length > 0 
-                    ? `${category.subcategories.length} alt kategori` 
-                    : 'Ürünleri görüntüle'}
-                </Typography>
+                {/* ALT KATEGORİ BİLGİSİ */}
+                <Box sx={{ 
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {category.subcategories?.length > 0 
+                      ? `${category.subcategories.length} alt kategori` 
+                      : 'Ürünleri görüntüle'}
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

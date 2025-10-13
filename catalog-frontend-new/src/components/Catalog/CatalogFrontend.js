@@ -252,6 +252,7 @@ const CatalogFrontend = () => {
     }
   };
 
+  // ALT KATEGORİ GÖRÜNÜMÜ - GÜNCELLENDİ (Aynı boyutlarda)
   const renderSubcategories = () => {
     const currentCategory = selectedSubcategory || selectedCategory;
     if (!currentCategory || !currentCategory.subcategories) return null;
@@ -272,7 +273,7 @@ const CatalogFrontend = () => {
             <Grid item xs={12} sm={6} md={3} key={subcategory._id || index}>
               <Card 
                 sx={{ 
-                  height: '350px',
+                  height: '320px', // AYNI SABİT YÜKSEKLİK
                   width: '100%',
                   cursor: 'pointer', 
                   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -290,14 +291,15 @@ const CatalogFrontend = () => {
                 }}
                 onClick={() => handleSubcategorySelect(subcategory)}
               >
-                {/* GÖRSEL - KESİN AYNI BOYUT */}
+                {/* GÖRSEL - AYNI SABİT BOYUT */}
                 <Box 
                   sx={{ 
-                    height: '200px',
+                    height: '180px', // AYNI SABİT GÖRSEL YÜKSEKLİĞİ
                     width: '100%',
                     overflow: 'hidden',
                     position: 'relative',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    backgroundColor: '#f5f5f5'
                   }}
                 >
                   <CardMedia
@@ -307,28 +309,36 @@ const CatalogFrontend = () => {
                     sx={{ 
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover'
+                      objectFit: 'cover', // Görseli kırparak sığdır
+                      objectPosition: 'center'
+                    }}
+                    onError={(e) => {
+                      e.target.src = '/placeholder-category.jpg';
                     }}
                   />
                 </Box>
                 
-                {/* İÇERİK - KESİN AYNI BOYUT */}
+                {/* İÇERİK - AYNI SABİT BOYUT */}
                 <CardContent 
                   sx={{ 
-                    height: '150px',
+                    height: '140px', // AYNI SABİT İÇERİK YÜKSEKLİĞİ
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     textAlign: 'center',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    flex: 1
                   }}
                 >
+                  {/* ALT KATEGORİ İSMİ - AYNI STİL */}
                   <Box sx={{ 
-                    height: '70px',
+                    minHeight: '60px',
+                    maxHeight: '60px',
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center' 
+                    justifyContent: 'center',
+                    overflow: 'hidden'
                   }}>
                     <Typography 
                       variant="h6" 
@@ -337,21 +347,42 @@ const CatalogFrontend = () => {
                         fontWeight: 600,
                         lineHeight: 1.3,
                         display: '-webkit-box',
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: 2, // Maksimum 2 satır
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis'
+                        textOverflow: 'ellipsis',
+                        wordBreak: 'break-word',
+                        fontSize: '1rem', // AYNI SABİT YAZI BOYUTU
+                        maxHeight: '48px' // 2 satır için maksimum yükseklik
                       }}
                     >
                       {subcategory.name}
                     </Typography>
                   </Box>
                   
-                  <Typography variant="body2" color="text.secondary">
-                    {subcategory.subcategories && subcategory.subcategories.length > 0 
-                      ? `${subcategory.subcategories.length} alt kategori` 
-                      : 'Ürünleri görüntüle'}
-                  </Typography>
+                  {/* ALT KATEGORİ BİLGİSİ - AYNI STİL */}
+                  <Box sx={{ 
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {subcategory.subcategories && subcategory.subcategories.length > 0 
+                        ? `${subcategory.subcategories.length} alt kategori` 
+                        : 'Ürünleri görüntüle'}
+                    </Typography>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
