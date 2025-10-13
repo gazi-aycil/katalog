@@ -156,7 +156,11 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
   };
 
   const handleSaveAll = () => {
-    if (!rootCategory.name.trim()) return alert('Ana kategori adı boş bırakılamaz.');
+    // 🔹 Ana kategori adı zorunlu değil artık.
+    // Yalnızca en az bir kategori eklenmişse kaydedelim.
+    if (!rootCategory.subcategories?.length) {
+      return alert('En az bir kategori eklemeniz gerekiyor.');
+    }
     onSave(rootCategory);
   };
 
