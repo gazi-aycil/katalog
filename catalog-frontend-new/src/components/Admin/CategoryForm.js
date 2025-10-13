@@ -156,12 +156,19 @@ export default function CategoryForm({ category, onSave, onCancel, open = true }
   };
 
   const handleSaveAll = () => {
-    // 🔹 Ana kategori adı zorunlu değil artık.
-    // Yalnızca en az bir kategori eklenmişse kaydedelim.
-    if (!rootCategory.subcategories?.length) {
+    // Eğer backend 'name' alanı zorunlu kılmışsa, boşsa geçici bir isim atıyoruz.
+    // Bu, backend validation hatasını engeller.
+    const safeRoot = {
+      ...rootCategory,
+      name: (rootCategory.name && rootCategory.name.trim()) ? rootCategory.name.trim() : 'root',
+    };
+
+    // Ek güvenlik: en az bir kategori olması gerekiyorsa kontrol edelim.
+    if (!safeRoot.subcategories?.length) {
       return alert('En az bir kategori eklemeniz gerekiyor.');
     }
-    onSave(rootCategory);
+
+    onSave(safeRoot);
   };
 
   return (
