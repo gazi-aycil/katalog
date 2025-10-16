@@ -122,6 +122,7 @@ const CatalogFrontend = () => {
     }
   };
 
+  // Geri tuşu
   const handleBack = () => {
     if (view === 'product') {
       setView('category');
@@ -151,6 +152,7 @@ const CatalogFrontend = () => {
     }
   };
 
+  // Ana sayfaya dön
   const handleHome = () => {
     setView('home');
     setSelectedCategory(null);
@@ -160,6 +162,7 @@ const CatalogFrontend = () => {
     setProducts([]);
   };
 
+  // Breadcrumb tıklama
   const handleBreadcrumbClick = (index) => {
     const newStack = breadcrumbStack.slice(0, index + 1);
     setBreadcrumbStack(newStack);
@@ -184,130 +187,7 @@ const CatalogFrontend = () => {
     }
   };
 
-  // ✅ ALT KATEGORİLER — STANDART BOYUTLU KARTLAR
-  const renderSubcategories = () => {
-    const currentCategory = selectedSubcategory || selectedCategory;
-    if (!currentCategory?.subcategories) return null;
-  
-    return (
-      <Box>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
-            {currentCategory.name}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {currentCategory.subcategories.length} alt kategori
-          </Typography>
-        </Box>
-
-        <Grid container spacing={3} justifyContent="center">
-          {currentCategory.subcategories.map((subcategory, index) => (
-            <Grid 
-              item 
-              key={subcategory._id || index}
-              sx={{ display: 'flex', justifyContent: 'center' }}
-            >
-              <Card
-                sx={{
-                  width: 260,
-                  height: 340,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-6px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
-                    borderColor: 'primary.main'
-                  }
-                }}
-                onClick={() => handleSubcategorySelect(subcategory)}
-              >
-                {/* FOTOĞRAF */}
-                <Box 
-                  sx={{ 
-                    height: 180,
-                    width: '100%',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    backgroundColor: '#f5f5f5'
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    image={subcategory.imageUrl || '/placeholder-category.jpg'}
-                    alt={subcategory.name}
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: 'center'
-                    }}
-                    onError={(e) => { e.target.src = '/placeholder-category.jpg'; }}
-                  />
-                </Box>
-
-                {/* METİN */}
-                <CardContent
-                  sx={{
-                    flexGrow: 1,
-                    px: 2,
-                    py: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Typography 
-                    variant="h6" 
-                    component="div" 
-                    sx={{ 
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      wordBreak: 'break-word',
-                      fontSize: '1rem',
-                      mb: 1
-                    }}
-                  >
-                    {subcategory.name}
-                  </Typography>
-
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {subcategory.subcategories?.length > 0
-                      ? `${subcategory.subcategories.length} alt kategori`
-                      : 'Ürünleri görüntüle'}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  };
-
+  // Breadcrumb render
   const renderBreadcrumbs = () => {
     if (view === 'home') return null;
     const items = [{ label: 'Ana Sayfa', onClick: handleHome }];
@@ -352,7 +232,37 @@ const CatalogFrontend = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        minHeight: '100vh',
+        position: 'relative',
+        // 🌆 Arka plan resmi + %50 gölge
+        '&::before': {
+          content: '""',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: 'url(/bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          zIndex: -2
+        },
+        '&::after': {
+          content: '""',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)', // %50 karartma
+          zIndex: -1
+        }
+      }}
+    >
       <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#383E42' }}>
         <Toolbar>
           {view !== 'home' && (
@@ -382,7 +292,13 @@ const CatalogFrontend = () => {
           />
         )}
 
-        {view === 'subcategories' && renderSubcategories()}
+        {view === 'subcategories' && (
+          <Box>
+            <Typography align="center" variant="h5" sx={{ color: '#fff' }}>
+              Alt Kategoriler
+            </Typography>
+          </Box>
+        )}
 
         {view === 'category' && (
           <ProductGrid 
