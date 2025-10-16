@@ -17,8 +17,7 @@ import {
   useTheme
 } from '@mui/material';
 import {
-  ZoomIn as ZoomInIcon,
-  ArrowBack as ArrowBackIcon
+  ZoomIn as ZoomInIcon
 } from '@mui/icons-material';
 
 const ProductDetail = ({ product, loading }) => {
@@ -27,239 +26,204 @@ const ProductDetail = ({ product, loading }) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
 
-  // Fiyat görüntüleme fonksiyonu
   const renderPrice = (price) => {
     if (price === 'Fiyat Alınız') {
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Chip 
-            label="Fiyat Alınız" 
-            color="warning" 
-            variant="filled"
-            sx={{ 
-              fontWeight: 600,
-              fontSize: '1.1rem',
-              px: 2,
-              py: 1
-            }}
-          />
-        </Box>
+        <Chip 
+          label="Fiyat Alınız" 
+          color="warning" 
+          sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
+        />
       );
     }
-    
-    // Sayısal fiyat için
-    const priceValue = typeof price === 'string' ? parseFloat(price) : price;
-    if (!isNaN(priceValue)) {
+    const value = typeof price === 'string' ? parseFloat(price) : price;
+    if (!isNaN(value)) {
       return (
-        <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          {priceValue.toFixed(2)} ₺
+        <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600 }}>
+          {value.toFixed(2)} ₺
         </Typography>
       );
     }
-    
     return (
-      <Chip 
-        label="Fiyat Bilgisi Yok" 
-        color="error" 
-        variant="outlined"
-        sx={{ 
-          fontWeight: 600,
-          fontSize: '1rem',
-          px: 2
-        }}
-      />
+      <Chip label="Fiyat Bilgisi Yok" color="error" variant="outlined" sx={{ fontWeight: 600 }} />
     );
   };
 
-  // WhatsApp iletişim fonksiyonu
   const handleContact = () => {
-    if (!product) return;
-    
-    const phoneNumber = "905326111641"; // Sabit numara
-    const productName = product.name || "Ürün";
-    const productBarcode = product.barcode === 'Fiyat Alınız' ? 'Fiyat Alınız' : `${product.price} ₺`;
-    
-    const message = `Merhaba, ${productName} (${productBarcode}) ürünü hakkında bilgi almak istiyorum. `;
-    const encodedMessage = encodeURIComponent(message);
-    
-    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+    const phone = "905326111641";
+    const message = `Merhaba, ${product.name} (${product.price} ₺) ürünü hakkında bilgi almak istiyorum.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  if (loading) {
+  if (loading || !product) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        {/* Loading indicator buraya gelebilir */}
-      </Box>
-    );
-  }
-
-  if (!product) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography variant="h6">Ürün bulunamadı</Typography>
+        <Typography variant="h6">Yükleniyor...</Typography>
       </Box>
     );
   }
 
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      {/* Ürün Detay İçeriği */}
-      <Grid container spacing={4}>
-        {/* Ürün Görselleri - Sabit solda */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ 
-            position: 'sticky',
-            top: 20,
+      <Grid 
+        container 
+        spacing={4}
+        alignItems="flex-start"
+        justifyContent="center"
+      >
+        {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
+        <Grid 
+          item 
+          xs={12} 
+          md={6} 
+          sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 2
-          }}>
-            {/* Ana Görsel */}
-            <Box sx={{ 
-              position: 'relative',
+            alignItems: 'center'
+          }}
+        >
+          {/* ANA GÖRSEL */}
+          <Box 
+            sx={{ 
+              width: '100%',
+              maxWidth: 500,
+              aspectRatio: '1 / 1', // Sabit kare oran
+              borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 2,
               overflow: 'hidden',
+              position: 'relative',
               backgroundColor: '#f8f9fa'
-            }}>
-              <Box
-                component="img"
-                src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-                alt={product.name}
-                sx={{
-                  width: '100%',
-                  height: isMobile ? '300px' : '400px',
-                  objectFit: 'contain',
-                  p: 1,
-                  display: 'block'
-                }}
-              />
-              <IconButton
-                sx={{
-                  position: 'absolute',
-                  bottom: 16,
-                  right: 16,
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  '&:hover': {
-                    backgroundColor: 'white'
-                  }
-                }}
-                onClick={() => setZoomDialogOpen(true)}
-              >
-                <ZoomInIcon />
-              </IconButton>
-            </Box>
-
-            {/* Küçük Görseller */}
-            {product.images && product.images.length > 1 && (
-              <Grid container spacing={1}>
-                {product.images.map((image, index) => (
-                  <Grid item xs={3} key={index}>
-                    <Box
-                      component="img"
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      onClick={() => setSelectedImage(index)}
-                      sx={{
-                        width: '100%',
-                        height: '80px',
-                        objectFit: 'contain',
-                        backgroundColor: '#f8f9fa',
-                        border: '1px solid',
-                        borderColor: selectedImage === index ? 'primary.main' : 'divider',
-                        borderRadius: 1,
-                        cursor: 'pointer',
-                        p: 0.5,
-                        transition: 'border-color 0.2s ease'
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            )}
+            }}
+          >
+            <Box
+              component="img"
+              src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
+              alt={product.name}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover', // oran sabit, taşan kısmı kırp
+                objectPosition: 'center'
+              }}
+              onError={(e) => (e.target.src = '/placeholder-product.jpg')}
+            />
+            <IconButton
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                right: 16,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                '&:hover': { backgroundColor: 'white' }
+              }}
+              onClick={() => setZoomDialogOpen(true)}
+            >
+              <ZoomInIcon />
+            </IconButton>
           </Box>
+
+          {/* KÜÇÜK GÖRSELLER */}
+          {product.images && product.images.length > 1 && (
+            <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
+              {product.images.map((img, i) => (
+                <Grid item key={i}>
+                  <Box
+                    component="img"
+                    src={img}
+                    alt={`${product.name} ${i + 1}`}
+                    onClick={() => setSelectedImage(i)}
+                    sx={{
+                      width: 70,
+                      height: 70,
+                      objectFit: 'cover',
+                      border: '2px solid',
+                      borderColor: selectedImage === i ? 'primary.main' : 'transparent',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s ease',
+                      backgroundColor: '#fff'
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Grid>
 
-        {/* Ürün Bilgileri - Sabit sağda */}
+        {/* SAĞ TARAF: ÜRÜN BİLGİLERİ */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ 
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start',
+              height: '100%',
+              gap: 2
+            }}
+          >
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>
               {product.name}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-              <Chip 
-                label={product.category} 
-                color="primary" 
-                variant="outlined" 
-              />
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {product.category && (
+                <Chip label={product.category} color="primary" variant="outlined" />
+              )}
               {product.subcategory && (
                 <Chip 
                   label={product.subcategory} 
                   variant="outlined"
-                  sx={{ 
-                    borderColor: 'secondary.main',
-                    color: 'secondary.main'
-                  }}
+                  sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
                 />
               )}
             </Box>
 
-            {/* Fiyat Görüntüleme */}
             {renderPrice(product.price)}
 
             {product.barcode && (
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant="body2" color="text.secondary">
                 Barkod: {product.barcode}
               </Typography>
             )}
 
-            <Divider sx={{ my: 3 }} />
+            <Divider sx={{ my: 2 }} />
 
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 3 }}>
+            <Typography variant="body1" color="text.secondary">
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {product.specs && product.specs.length > 0 && (
+            {product.specs?.length > 0 && (
               <>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
                   Teknik Özellikler
                 </Typography>
-                <List dense sx={{ mb: 3 }}>
-                  {product.specs.map((spec, index) => (
-                    <ListItem key={index} sx={{ px: 0 }}>
-                      <ListItemText 
-                        primary={spec}
-                        primaryTypographyProps={{ variant: 'body2' }}
-                      />
+                <List dense>
+                  {product.specs.map((spec, i) => (
+                    <ListItem key={i} sx={{ px: 0 }}>
+                      <ListItemText primary={spec} />
                     </ListItem>
                   ))}
                 </List>
               </>
             )}
 
-            {/* Buton container - içeriğin altında sabit */}
-            <Box sx={{ mt: 'auto', pt: 3 }}>
+            <Box sx={{ mt: 'auto', pt: 2 }}>
               <Button
                 variant="contained"
                 size="large"
                 fullWidth={isMobile}
-                sx={{ 
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  minWidth: isMobile ? '100%' : 'auto'
-                }}
                 onClick={handleContact}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  py: 1.5,
+                  px: 4,
+                  backgroundColor: '#2c3e50',
+                  '&:hover': { backgroundColor: '#1f2d3a' }
+                }}
               >
                 {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
               </Button>
@@ -268,7 +232,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* Zoom Dialog */}
+      {/* ZOOM DİYALOG */}
       <Dialog
         open={zoomDialogOpen}
         onClose={() => setZoomDialogOpen(false)}
