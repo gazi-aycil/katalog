@@ -87,29 +87,20 @@ const ProductDetail = ({ product, loading }) => {
   const rightSpecs = specs.slice(midIndex);
 
   return (
-    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid
-        container
-        spacing={4}
-        alignItems="flex-start"
-        justifyContent="center"
-        sx={{ flexWrap: 'nowrap', [theme.breakpoints.down('md')]: { flexWrap: 'wrap' } }}
-      >
+    <Box sx={{ maxWidth: '1100px', margin: '0 auto', px: 2, py: 3 }}>
+      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
         {/* SOL TARAF: GÖRSEL */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={5}>
           <Box
             sx={{
               width: '100%',
-              aspectRatio: '1 / 1', // oran sabit, kare görünüm
+              height: 400,
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
+              backgroundColor: '#f8f9fa'
             }}
           >
             <Box
@@ -149,8 +140,8 @@ const ProductDetail = ({ product, loading }) => {
                     alt={`${product.name} ${i + 1}`}
                     onClick={() => setSelectedImage(i)}
                     sx={{
-                      width: 70,
-                      height: 70,
+                      width: 65,
+                      height: 65,
                       objectFit: 'cover',
                       border: '2px solid',
                       borderColor: selectedImage === i ? 'primary.main' : 'transparent',
@@ -167,7 +158,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
 
         {/* SAĞ TARAF: DETAYLAR */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={7}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               {product.name}
@@ -192,25 +183,25 @@ const ProductDetail = ({ product, loading }) => {
               </Typography>
             )}
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 1.5 }} />
 
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
             {specs.length > 0 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Teknik Özellikler
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={1}>
                   <Grid item xs={12} md={6}>
                     <List dense>
                       {leftSpecs.map((spec, i) => (
-                        <ListItem key={`left-${i}`} sx={{ px: 0 }}>
+                        <ListItem key={`left-${i}`} sx={{ px: 0, py: 0 }}>
                           <ListItemText primary={spec} />
                         </ListItem>
                       ))}
@@ -219,7 +210,7 @@ const ProductDetail = ({ product, loading }) => {
                   <Grid item xs={12} md={6}>
                     <List dense>
                       {rightSpecs.map((spec, i) => (
-                        <ListItem key={`right-${i}`} sx={{ px: 0 }}>
+                        <ListItem key={`right-${i}`} sx={{ px: 0, py: 0 }}>
                           <ListItemText primary={spec} />
                         </ListItem>
                       ))}
@@ -229,7 +220,7 @@ const ProductDetail = ({ product, loading }) => {
               </>
             )}
 
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 2 }}>
               <Button
                 variant="contained"
                 size="large"
@@ -238,7 +229,7 @@ const ProductDetail = ({ product, loading }) => {
                 sx={{
                   fontWeight: 600,
                   fontSize: '1.1rem',
-                  py: 1.5,
+                  py: 1.2,
                   px: 4,
                   backgroundColor: '#2c3e50',
                   '&:hover': { backgroundColor: '#1f2d3a' }
@@ -251,7 +242,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* 🔍 Zoom Görsel */}
+      {/* ZOOM GÖRSEL */}
       <Dialog open={zoomDialogOpen} onClose={() => setZoomDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogContent sx={{ p: 0 }}>
           <Box
