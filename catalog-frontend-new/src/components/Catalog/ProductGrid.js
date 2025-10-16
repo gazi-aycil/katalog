@@ -65,37 +65,45 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={3} justifyContent="center">
           {products.map((product) => (
-            <Grid item xs={12} sm={6} md={3} key={product._id}>
+            <Grid 
+              item 
+              key={product._id}
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
               <Card 
                 sx={{ 
-                  height: '350px', // TÜM KARTLAR AYNI
-                  width: '100%',
+                  width: 260,               // SABİT GENİŞLİK
+                  height: 360,              // SABİT YÜKSEKLİK
                   display: 'flex', 
                   flexDirection: 'column',
+                  justifyContent: 'space-between',
                   cursor: 'pointer',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   borderRadius: 2,
                   overflow: 'hidden',
                   border: '1px solid',
                   borderColor: 'divider',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: 8,
+                    transform: 'translateY(-6px)',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
                     borderColor: 'primary.main'
                   }
                 }}
                 onClick={() => onProductSelect(product._id)}
               >
-                {/* GÖRSEL - KESİN AYNI BOYUT */}
+                {/* FOTOĞRAF */}
                 <Box 
                   sx={{ 
-                    height: '200px', // TÜM GÖRSELLER AYNI
+                    height: 180,             // SABİT FOTOĞRAF YÜKSEKLİĞİ
                     width: '100%',
                     overflow: 'hidden',
                     position: 'relative',
-                    flexShrink: 0
+                    backgroundColor: '#f5f5f5'
                   }}
                 >
                   <CardMedia
@@ -105,7 +113,11 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                     sx={{ 
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover'
+                      objectFit: 'cover',    // ORANI KORUYARAK KIRP
+                      objectPosition: 'center'
+                    }}
+                    onError={(e) => {
+                      e.target.src = '/placeholder-product.jpg';
                     }}
                   />
                   <Box
@@ -119,6 +131,7 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                       py: 0.5,
                       borderRadius: 1,
                       fontSize: '0.75rem',
+                      fontWeight: 600,
                       maxWidth: '80%',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -129,64 +142,67 @@ const ProductGrid = ({ products, category, subcategory, onProductSelect, loading
                   </Box>
                 </Box>
 
-                {/* İÇERİK - KESİN AYNI BOYUT */}
+                {/* METİN ALANI */}
                 <CardContent 
                   sx={{ 
-                    height: '150px', // TÜM İÇERİKLER AYNI
-                    p: 2,
+                    flexGrow: 1,
+                    px: 2,
+                    py: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
-                    overflow: 'hidden'
+                    justifyContent: 'space-between',
+                    textAlign: 'center',
+                    overflow: 'hidden',
                   }}
                 >
-                  {/* ÜRÜN ADI - KESİN AYNI BOYUT */}
-                  <Box sx={{ height: '50px', mb: 1 }}>
-                    <Typography 
-                      variant="h6" 
-                      component="h2"
-                      sx={{ 
-                        fontWeight: 600,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.3,
-                        fontSize: '1rem'
-                      }}
-                    >
-                      {product.name}
-                    </Typography>
-                  </Box>
-                  
-                  {/* AÇIKLAMA - KESİN AYNI BOYUT */}
-                  <Box sx={{ height: '40px', mb: 2, flex: 1 }}>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.4,
-                        fontSize: '0.8rem'
-                      }}
-                    >
-                      {product.description || 'Açıklama bulunmamaktadır.'}
-                    </Typography>
-                  </Box>
-                  
-                  {/* FİYAT VE BİLGİLER */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    mt: 'auto'
-                  }}>
+                  {/* ÜRÜN ADI */}
+                  <Typography 
+                    variant="h6" 
+                    component="h2"
+                    sx={{ 
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      wordBreak: 'break-word',
+                      fontSize: '1rem',
+                      mb: 1
+                    }}
+                  >
+                    {product.name}
+                  </Typography>
+
+                  {/* AÇIKLAMA */}
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      lineHeight: 1.4,
+                      fontSize: '0.8rem',
+                      mb: 1
+                    }}
+                  >
+                    {product.description || 'Açıklama bulunmamaktadır.'}
+                  </Typography>
+
+                  {/* FİYAT & ETİKET */}
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      mt: 'auto'
+                    }}
+                  >
                     {renderPrice(product.price)}
-                    
                     <Chip 
                       label={product.subcategory || product.category || 'Kategori'} 
                       size="small" 
