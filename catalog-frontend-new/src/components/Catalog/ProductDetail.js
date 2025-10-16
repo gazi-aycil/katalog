@@ -1,4 +1,3 @@
-// src/components/Catalog/ProductDetail.js
 import React, { useState } from 'react';
 import {
   Box,
@@ -30,7 +29,15 @@ const ProductDetail = ({ product, loading }) => {
         <Chip
           label="Fiyat Alınız"
           color="warning"
-          sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            width: 160,
+            height: 48,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
         />
       );
     }
@@ -43,7 +50,20 @@ const ProductDetail = ({ product, loading }) => {
       );
     }
     return (
-      <Chip label="Fiyat Bilgisi Yok" color="error" variant="outlined" sx={{ fontWeight: 600 }} />
+      <Chip
+        label="Fiyat Bilgisi Yok"
+        color="error"
+        variant="outlined"
+        sx={{
+          fontWeight: 600,
+          fontSize: '1rem',
+          width: 160,
+          height: 48,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+      />
     );
   };
 
@@ -61,7 +81,6 @@ const ProductDetail = ({ product, loading }) => {
     );
   }
 
-  // Teknik özellikleri ikiye böl
   const specs = product.specs || [];
   const midIndex = Math.ceil(specs.length / 2);
   const leftSpecs = specs.slice(0, midIndex);
@@ -69,19 +88,28 @@ const ProductDetail = ({ product, loading }) => {
 
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
-        {/* SOL: ÜRÜN GÖRSELLERİ */}
+      <Grid
+        container
+        spacing={4}
+        alignItems="flex-start"
+        justifyContent="center"
+        sx={{ flexWrap: 'nowrap', [theme.breakpoints.down('md')]: { flexWrap: 'wrap' } }}
+      >
+        {/* SOL TARAF: GÖRSEL */}
         <Grid item xs={12} md={6}>
           <Box
             sx={{
               width: '100%',
-              aspectRatio: '1 / 1',
+              aspectRatio: '1 / 1', // oran sabit, kare görünüm
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
             }}
           >
             <Box
@@ -138,7 +166,7 @@ const ProductDetail = ({ product, loading }) => {
           )}
         </Grid>
 
-        {/* SAĞ: ÜRÜN DETAYLARI */}
+        {/* SAĞ TARAF: DETAYLAR */}
         <Grid item xs={12} md={6}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
@@ -173,7 +201,6 @@ const ProductDetail = ({ product, loading }) => {
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {/* 🔹 Teknik Özellikler 2 sütunlu */}
             {specs.length > 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
@@ -224,7 +251,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* 🔍 Zoom Diyalog */}
+      {/* 🔍 Zoom Görsel */}
       <Dialog open={zoomDialogOpen} onClose={() => setZoomDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogContent sx={{ p: 0 }}>
           <Box
