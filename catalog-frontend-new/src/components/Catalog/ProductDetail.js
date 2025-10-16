@@ -70,6 +70,12 @@ const ProductDetail = ({ product, loading }) => {
         spacing={4}
         alignItems="flex-start"
         justifyContent="center"
+        sx={{
+          flexWrap: 'nowrap',
+          '@media (max-width:900px)': {
+            flexWrap: 'wrap',
+          }
+        }}
       >
         {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
         <Grid 
@@ -79,7 +85,9 @@ const ProductDetail = ({ product, loading }) => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexBasis: '50%',
+            flexGrow: 0,
           }}
         >
           {/* ANA GÖRSEL */}
@@ -87,13 +95,14 @@ const ProductDetail = ({ product, loading }) => {
             sx={{ 
               width: '100%',
               maxWidth: 500,
-              aspectRatio: '1 / 1', // Sabit kare oran
+              aspectRatio: '4 / 3', // sabit oran
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              flexShrink: 0,
             }}
           >
             <Box
@@ -103,7 +112,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover', // oran sabit, taşan kısmı kırp
+                objectFit: 'contain', // oran korunur
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
