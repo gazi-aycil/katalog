@@ -63,6 +63,12 @@ const ProductDetail = ({ product, loading }) => {
     );
   }
 
+  // Teknik özellikleri iki sütuna böl
+  const specs = product.specs || [];
+  const midIndex = Math.ceil(specs.length / 2);
+  const leftSpecs = specs.slice(0, midIndex);
+  const rightSpecs = specs.slice(midIndex);
+
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
       <Grid 
@@ -70,12 +76,6 @@ const ProductDetail = ({ product, loading }) => {
         spacing={4}
         alignItems="flex-start"
         justifyContent="center"
-        sx={{
-          flexWrap: 'nowrap',
-          '@media (max-width:900px)': {
-            flexWrap: 'wrap',
-          }
-        }}
       >
         {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
         <Grid 
@@ -85,24 +85,20 @@ const ProductDetail = ({ product, loading }) => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            flexBasis: '50%',
-            flexGrow: 0,
+            alignItems: 'center'
           }}
         >
-          {/* ANA GÖRSEL */}
           <Box 
             sx={{ 
               width: '100%',
               maxWidth: 500,
-              aspectRatio: '4 / 3', // sabit oran
+              aspectRatio: '1 / 1',
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa',
-              flexShrink: 0,
+              backgroundColor: '#f8f9fa'
             }}
           >
             <Box
@@ -112,7 +108,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain', // oran korunur
+                objectFit: 'cover',
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
@@ -204,18 +200,32 @@ const ProductDetail = ({ product, loading }) => {
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {product.specs?.length > 0 && (
+            {/* 🧩 Teknik Özellikler 2 sütun halinde */}
+            {specs.length > 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
                   Teknik Özellikler
                 </Typography>
-                <List dense>
-                  {product.specs.map((spec, i) => (
-                    <ListItem key={i} sx={{ px: 0 }}>
-                      <ListItemText primary={spec} />
-                    </ListItem>
-                  ))}
-                </List>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <List dense>
+                      {leftSpecs.map((spec, i) => (
+                        <ListItem key={`left-${i}`} sx={{ px: 0 }}>
+                          <ListItemText primary={spec} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <List dense>
+                      {rightSpecs.map((spec, i) => (
+                        <ListItem key={`right-${i}`} sx={{ px: 0 }}>
+                          <ListItemText primary={spec} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                </Grid>
               </>
             )}
 
@@ -241,7 +251,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* ZOOM DİYALOG */}
+      {/* 🔍 ZOOM DİYALOG */}
       <Dialog
         open={zoomDialogOpen}
         onClose={() => setZoomDialogOpen(false)}
