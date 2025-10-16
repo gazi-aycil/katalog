@@ -14,11 +14,12 @@ import {
   ListItem,
   ListItemText,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
-import {
-  ZoomIn as ZoomInIcon
-} from '@mui/icons-material';
+import { ZoomIn as ZoomInIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 
 const ProductDetail = ({ product, loading }) => {
   const theme = useTheme();
@@ -63,12 +64,6 @@ const ProductDetail = ({ product, loading }) => {
     );
   }
 
-  // Teknik özellikleri iki sütuna böl
-  const specs = product.specs || [];
-  const midIndex = Math.ceil(specs.length / 2);
-  const leftSpecs = specs.slice(0, midIndex);
-  const rightSpecs = specs.slice(midIndex);
-
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
       <Grid 
@@ -88,17 +83,21 @@ const ProductDetail = ({ product, loading }) => {
             alignItems: 'center'
           }}
         >
+          {/* ANA GÖRSEL */}
           <Box 
             sx={{ 
               width: '100%',
               maxWidth: 500,
-              aspectRatio: '1 / 1',
+              height: 400,
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
             <Box
@@ -108,7 +107,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
+                objectFit: 'contain',
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
@@ -200,33 +199,33 @@ const ProductDetail = ({ product, loading }) => {
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {/* 🧩 Teknik Özellikler 2 sütun halinde */}
-            {specs.length > 0 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
-                  Teknik Özellikler
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <List dense>
-                      {leftSpecs.map((spec, i) => (
-                        <ListItem key={`left-${i}`} sx={{ px: 0 }}>
-                          <ListItemText primary={spec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <List dense>
-                      {rightSpecs.map((spec, i) => (
-                        <ListItem key={`right-${i}`} sx={{ px: 0 }}>
-                          <ListItemText primary={spec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-                </Grid>
-              </>
+            {/* 📘 TEKNİK ÖZELLİKLER - AÇILIR ALAN */}
+            {product.specs?.length > 0 && (
+              <Accordion sx={{ mt: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  aria-controls="specs-content"
+                  id="specs-header"
+                  sx={{
+                    backgroundColor: '#f5f5f5',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Teknik Özellikler
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 2 }}>
+                  <List dense>
+                    {product.specs.map((spec, i) => (
+                      <ListItem key={i} sx={{ px: 0 }}>
+                        <ListItemText primary={spec} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </AccordionDetails>
+              </Accordion>
             )}
 
             <Box sx={{ mt: 'auto', pt: 2 }}>
@@ -251,7 +250,7 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* 🔍 ZOOM DİYALOG */}
+      {/* ZOOM DİYALOG */}
       <Dialog
         open={zoomDialogOpen}
         onClose={() => setZoomDialogOpen(false)}
