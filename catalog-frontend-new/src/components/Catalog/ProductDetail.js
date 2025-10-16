@@ -14,12 +14,9 @@ import {
   ListItem,
   ListItemText,
   useMediaQuery,
-  useTheme,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  useTheme
 } from '@mui/material';
-import { ZoomIn as ZoomInIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { ZoomIn as ZoomInIcon } from '@mui/icons-material';
 
 const ProductDetail = ({ product, loading }) => {
   const theme = useTheme();
@@ -30,9 +27,9 @@ const ProductDetail = ({ product, loading }) => {
   const renderPrice = (price) => {
     if (price === 'Fiyat Alınız') {
       return (
-        <Chip 
-          label="Fiyat Alınız" 
-          color="warning" 
+        <Chip
+          label="Fiyat Alınız"
+          color="warning"
           sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
         />
       );
@@ -51,7 +48,7 @@ const ProductDetail = ({ product, loading }) => {
   };
 
   const handleContact = () => {
-    const phone = "905326111641";
+    const phone = '905326111641';
     const message = `Merhaba, ${product.name} (${product.price} ₺) ürünü hakkında bilgi almak istiyorum.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -64,40 +61,27 @@ const ProductDetail = ({ product, loading }) => {
     );
   }
 
+  // Teknik özellikleri ikiye böl
+  const specs = product.specs || [];
+  const midIndex = Math.ceil(specs.length / 2);
+  const leftSpecs = specs.slice(0, midIndex);
+  const rightSpecs = specs.slice(midIndex);
+
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid 
-        container 
-        spacing={4}
-        alignItems="flex-start"
-        justifyContent="center"
-      >
-        {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
-        <Grid 
-          item 
-          xs={12} 
-          md={6} 
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}
-        >
-          {/* ANA GÖRSEL */}
-          <Box 
-            sx={{ 
+      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
+        {/* SOL: ÜRÜN GÖRSELLERİ */}
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
               width: '100%',
-              maxWidth: 500,
-              height: 400,
+              aspectRatio: '1 / 1',
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              backgroundColor: '#f8f9fa'
             }}
           >
             <Box
@@ -107,7 +91,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain',
+                objectFit: 'cover',
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
@@ -126,7 +110,7 @@ const ProductDetail = ({ product, loading }) => {
             </IconButton>
           </Box>
 
-          {/* KÜÇÜK GÖRSELLER */}
+          {/* ALT GÖRSELLER */}
           {product.images && product.images.length > 1 && (
             <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
               {product.images.map((img, i) => (
@@ -154,28 +138,18 @@ const ProductDetail = ({ product, loading }) => {
           )}
         </Grid>
 
-        {/* SAĞ TARAF: ÜRÜN BİLGİLERİ */}
+        {/* SAĞ: ÜRÜN DETAYLARI */}
         <Grid item xs={12} md={6}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              height: '100%',
-              gap: 2
-            }}
-          >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               {product.name}
             </Typography>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {product.category && (
-                <Chip label={product.category} color="primary" variant="outlined" />
-              )}
+              {product.category && <Chip label={product.category} color="primary" variant="outlined" />}
               {product.subcategory && (
-                <Chip 
-                  label={product.subcategory} 
+                <Chip
+                  label={product.subcategory}
                   variant="outlined"
                   sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
                 />
@@ -199,36 +173,36 @@ const ProductDetail = ({ product, loading }) => {
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {/* 📘 TEKNİK ÖZELLİKLER - AÇILIR ALAN */}
-            {product.specs?.length > 0 && (
-              <Accordion sx={{ mt: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  aria-controls="specs-content"
-                  id="specs-header"
-                  sx={{
-                    backgroundColor: '#f5f5f5',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Teknik Özellikler
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 2 }}>
-                  <List dense>
-                    {product.specs.map((spec, i) => (
-                      <ListItem key={i} sx={{ px: 0 }}>
-                        <ListItemText primary={spec} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </AccordionDetails>
-              </Accordion>
+            {/* 🔹 Teknik Özellikler 2 sütunlu */}
+            {specs.length > 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
+                  Teknik Özellikler
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <List dense>
+                      {leftSpecs.map((spec, i) => (
+                        <ListItem key={`left-${i}`} sx={{ px: 0 }}>
+                          <ListItemText primary={spec} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <List dense>
+                      {rightSpecs.map((spec, i) => (
+                        <ListItem key={`right-${i}`} sx={{ px: 0 }}>
+                          <ListItemText primary={spec} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                </Grid>
+              </>
             )}
 
-            <Box sx={{ mt: 'auto', pt: 2 }}>
+            <Box sx={{ mt: 3 }}>
               <Button
                 variant="contained"
                 size="large"
@@ -250,13 +224,8 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* ZOOM DİYALOG */}
-      <Dialog
-        open={zoomDialogOpen}
-        onClose={() => setZoomDialogOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
+      {/* 🔍 Zoom Diyalog */}
+      <Dialog open={zoomDialogOpen} onClose={() => setZoomDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogContent sx={{ p: 0 }}>
           <Box
             component="img"
