@@ -1,259 +1,223 @@
-// src/components/Catalog/ProductDetail.js
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Box,
-  Typography,
   Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
+  Box,
   Chip,
-  Button,
-  IconButton,
-  Dialog,
-  DialogContent,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  useMediaQuery,
-  useTheme
+  CircularProgress
 } from '@mui/material';
-import {
-  ZoomIn as ZoomInIcon
-} from '@mui/icons-material';
 
-const ProductDetail = ({ product, loading }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
+const ProductGrid = ({ products, category, subcategory, onProductSelect, loading }) => {
 
   const renderPrice = (price) => {
     if (price === 'Fiyat Alınız') {
       return (
         <Chip 
           label="Fiyat Alınız" 
+          size="small" 
           color="warning" 
-          sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
+          variant="filled"
+          sx={{ fontWeight: 600, fontSize: '0.9rem', px: 1 }}
         />
       );
     }
-    const value = typeof price === 'string' ? parseFloat(price) : price;
-    if (!isNaN(value)) {
+    
+    const priceValue = typeof price === 'string' ? parseFloat(price) : price;
+    if (!isNaN(priceValue)) {
       return (
-        <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600 }}>
-          {value.toFixed(2)} ₺
+        <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+          {priceValue.toFixed(2)} ₺
         </Typography>
       );
     }
+    
     return (
-      <Chip label="Fiyat Bilgisi Yok" color="error" variant="outlined" sx={{ fontWeight: 600 }} />
+      <Chip label="Fiyat Bilgisi Yok" size="small" color="error" variant="outlined" />
     );
   };
 
-  const handleContact = () => {
-    const phone = "905326111641";
-    const message = `Merhaba, ${product.name} (${product.price} ₺) ürünü hakkında bilgi almak istiyorum.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
-  if (loading || !product) {
+  if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography variant="h6">Yükleniyor...</Typography>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+        <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid 
-        container 
-        spacing={4}
-        alignItems="flex-start"
-        justifyContent="center"
-      >
-        {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
-        <Grid 
-          item 
-          xs={12} 
-          md={6} 
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}
-        >
-          {/* ANA GÖRSEL */}
-          <Box 
-            sx={{ 
-              width: '100%',
-              maxWidth: 500,
-              aspectRatio: '1 / 1', // Sabit kare oran
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              overflow: 'hidden',
-              position: 'relative',
-              backgroundColor: '#f8f9fa'
-            }}
-          >
-            <Box
-              component="img"
-              src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-              alt={product.name}
-              sx={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover', // oran sabit, taşan kısmı kırp
-                objectPosition: 'center'
-              }}
-              onError={(e) => (e.target.src = '/placeholder-product.jpg')}
-            />
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: 16,
-                right: 16,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                '&:hover': { backgroundColor: 'white' }
-              }}
-              onClick={() => setZoomDialogOpen(true)}
-            >
-              <ZoomInIcon />
-            </IconButton>
-          </Box>
+    <Box>
+      <Box sx={{ textAlign: 'center', mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
+          {subcategory ? subcategory.name : category?.name}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {products.length} ürün
+        </Typography>
+      </Box>
 
-          {/* KÜÇÜK GÖRSELLER */}
-          {product.images && product.images.length > 1 && (
-            <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
-              {product.images.map((img, i) => (
-                <Grid item key={i}>
-                  <Box
+      {products.length === 0 ? (
+        <Box textAlign="center" py={8}>
+          <Typography variant="h6" color="text.secondary">
+            Bu kategoride henüz ürün bulunmamaktadır.
+          </Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3} justifyContent="center">
+          {products.map((product) => (
+            <Grid 
+              item 
+              key={product._id}
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <Card 
+                sx={{ 
+                  width: 260,               // SABİT GENİŞLİK
+                  height: 360,              // SABİT YÜKSEKLİK
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-6px)',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                    borderColor: 'primary.main'
+                  }
+                }}
+                onClick={() => onProductSelect(product._id)}
+              >
+                {/* FOTOĞRAF */}
+                <Box 
+                  sx={{ 
+                    height: 180,             // SABİT FOTOĞRAF YÜKSEKLİĞİ
+                    width: '100%',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    backgroundColor: '#f5f5f5'
+                  }}
+                >
+                  <CardMedia
                     component="img"
-                    src={img}
-                    alt={`${product.name} ${i + 1}`}
-                    onClick={() => setSelectedImage(i)}
-                    sx={{
-                      width: 70,
-                      height: 70,
-                      objectFit: 'cover',
-                      border: '2px solid',
-                      borderColor: selectedImage === i ? 'primary.main' : 'transparent',
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s ease',
-                      backgroundColor: '#fff'
+                    image={product.images?.[0] || '/placeholder-product.jpg'}
+                    alt={product.name}
+                    sx={{ 
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',    // ORANI KORUYARAK KIRP
+                      objectPosition: 'center'
+                    }}
+                    onError={(e) => {
+                      e.target.src = '/placeholder-product.jpg';
                     }}
                   />
-                </Grid>
-              ))}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      maxWidth: '80%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {product.subcategory || product.category || 'Kategori'}
+                  </Box>
+                </Box>
+
+                {/* METİN ALANI */}
+                <CardContent 
+                  sx={{ 
+                    flexGrow: 1,
+                    px: 2,
+                    py: 1.5,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    textAlign: 'center',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* ÜRÜN ADI */}
+                  <Typography 
+                    variant="h6" 
+                    component="h2"
+                    sx={{ 
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      wordBreak: 'break-word',
+                      fontSize: '1rem',
+                      mb: 1
+                    }}
+                  >
+                    {product.name}
+                  </Typography>
+
+                  {/* AÇIKLAMA */}
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      lineHeight: 1.4,
+                      fontSize: '0.8rem',
+                      mb: 1
+                    }}
+                  >
+                    {product.description || 'Açıklama bulunmamaktadır.'}
+                  </Typography>
+
+                  {/* FİYAT & ETİKET */}
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      mt: 'auto'
+                    }}
+                  >
+                    {renderPrice(product.price)}
+                    <Chip 
+                      label={product.subcategory || product.category || 'Kategori'} 
+                      size="small" 
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem', maxWidth: '100px' }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
             </Grid>
-          )}
+          ))}
         </Grid>
-
-        {/* SAĞ TARAF: ÜRÜN BİLGİLERİ */}
-        <Grid item xs={12} md={6}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              height: '100%',
-              gap: 2
-            }}
-          >
-            <Typography variant="h4" sx={{ fontWeight: 600 }}>
-              {product.name}
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {product.category && (
-                <Chip label={product.category} color="primary" variant="outlined" />
-              )}
-              {product.subcategory && (
-                <Chip 
-                  label={product.subcategory} 
-                  variant="outlined"
-                  sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
-                />
-              )}
-            </Box>
-
-            {renderPrice(product.price)}
-
-            {product.barcode && (
-              <Typography variant="body2" color="text.secondary">
-                Barkod: {product.barcode}
-              </Typography>
-            )}
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Ürün Açıklaması
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
-            </Typography>
-
-            {product.specs?.length > 0 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
-                  Teknik Özellikler
-                </Typography>
-                <List dense>
-                  {product.specs.map((spec, i) => (
-                    <ListItem key={i} sx={{ px: 0 }}>
-                      <ListItemText primary={spec} />
-                    </ListItem>
-                  ))}
-                </List>
-              </>
-            )}
-
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth={isMobile}
-                onClick={handleContact}
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
-                  py: 1.5,
-                  px: 4,
-                  backgroundColor: '#2c3e50',
-                  '&:hover': { backgroundColor: '#1f2d3a' }
-                }}
-              >
-                {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
-              </Button>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
-
-      {/* ZOOM DİYALOG */}
-      <Dialog
-        open={zoomDialogOpen}
-        onClose={() => setZoomDialogOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogContent sx={{ p: 0 }}>
-          <Box
-            component="img"
-            src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-            alt={product.name}
-            sx={{
-              width: '100%',
-              height: 'auto',
-              objectFit: 'contain'
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      )}
     </Box>
   );
 };
 
-export default ProductDetail;
+export default ProductGrid;
