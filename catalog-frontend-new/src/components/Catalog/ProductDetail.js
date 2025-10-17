@@ -10,9 +10,6 @@ import {
   Dialog,
   DialogContent,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
   useMediaQuery,
   useTheme
 } from '@mui/material';
@@ -77,7 +74,8 @@ const ProductDetail = ({ product, loading }) => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexShrink: 0
           }}
         >
           {/* ANA GÖRSEL */}
@@ -94,8 +92,7 @@ const ProductDetail = ({ product, loading }) => {
               backgroundColor: '#f8f9fa',
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center',
-              flexShrink: 0,
+              alignItems: 'center'
             }}
           >
             <Box
@@ -105,7 +102,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain', // orijinal oran korunur
+                objectFit: 'contain', // oran korunur
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
@@ -159,8 +156,9 @@ const ProductDetail = ({ product, loading }) => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'flex-start',
-              height: '100%',
-              gap: 2
+              gap: 2,
+              wordWrap: 'break-word',        // uzun kelimeleri böl
+              overflowWrap: 'break-word',     // metin kaymasın
             }}
           >
             {/* ÜRÜN ADI */}
@@ -198,7 +196,16 @@ const ProductDetail = ({ product, loading }) => {
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{
+                whiteSpace: 'pre-wrap',
+                textAlign: 'justify',
+                lineHeight: 1.6,
+                wordBreak: 'break-word',
+              }}
+            >
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
@@ -211,8 +218,8 @@ const ProductDetail = ({ product, loading }) => {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)', // 2 sütun
-                    gap: 1.5, // sütunlar arası boşluk
+                    gridTemplateColumns: 'repeat(2, 1fr)', // iki sütun
+                    gap: 1.5,
                     mt: 1,
                   }}
                 >
