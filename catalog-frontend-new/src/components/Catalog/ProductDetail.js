@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  Grid,
   Chip,
   Button,
   IconButton,
@@ -11,7 +10,8 @@ import {
   DialogContent,
   Divider,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Grid
 } from '@mui/material';
 import { ZoomIn as ZoomInIcon } from '@mui/icons-material';
 
@@ -94,99 +94,60 @@ const ProductDetail = ({ product, loading }) => {
         py: 4,
       }}
     >
-      <Grid
-        container
-        spacing={4}
-        alignItems="flex-start"
-        justifyContent="center"
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: 'flex-start',
+          gap: 4,
+        }}
       >
-        {/* SOL TARAF: SABİT GÖRSEL */}
-        <Grid
-          item
-          xs={12}
-          md={6}
+        {/* SOL: SABİT GÖRSEL */}
+        <Box
           sx={{
+            width: 400,
+            height: 400,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: '#f8f9fa',
+            flexShrink: 0,
             display: 'flex',
-            flexDirection: 'column',
+            justifyContent: 'center',
             alignItems: 'center',
-            justifyContent: 'flex-start',
+            overflow: 'hidden',
+            position: 'relative',
           }}
         >
           <Box
+            component="img"
+            src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
+            alt={product.name}
             sx={{
-              width: 400,
-              height: 400,
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: '#f8f9fa',
-              overflow: 'hidden',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              position: 'relative',
-              flexShrink: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
             }}
+            onError={(e) => (e.target.src = '/placeholder-product.jpg')}
+          />
+          <IconButton
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              '&:hover': { backgroundColor: 'white' },
+            }}
+            onClick={() => setZoomDialogOpen(true)}
           >
-            <Box
-              component="img"
-              src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-              alt={product.name}
-              sx={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-              }}
-              onError={(e) => (e.target.src = '/placeholder-product.jpg')}
-            />
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: 16,
-                right: 16,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                '&:hover': { backgroundColor: 'white' },
-              }}
-              onClick={() => setZoomDialogOpen(true)}
-            >
-              <ZoomInIcon />
-            </IconButton>
-          </Box>
+            <ZoomInIcon />
+          </IconButton>
+        </Box>
 
-          {/* Küçük Görseller */}
-          {product.images && product.images.length > 1 && (
-            <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
-              {product.images.map((img, i) => (
-                <Grid item key={i}>
-                  <Box
-                    component="img"
-                    src={img}
-                    alt={`${product.name} ${i + 1}`}
-                    onClick={() => setSelectedImage(i)}
-                    sx={{
-                      width: 70,
-                      height: 70,
-                      objectFit: 'cover',
-                      border: '2px solid',
-                      borderColor: selectedImage === i ? 'primary.main' : 'transparent',
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s ease',
-                      backgroundColor: '#fff',
-                    }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </Grid>
-
-        {/* SAĞ TARAF: SABİT DÜZENLİ ALAN */}
-        <Grid
-          item
-          xs={12}
-          md={6}
+        {/* SAĞ: ÜRÜN BİLGİLERİ */}
+        <Box
           sx={{
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-start',
@@ -201,21 +162,13 @@ const ProductDetail = ({ product, loading }) => {
               fontWeight: 600,
               mb: 1,
               lineHeight: 1.3,
-              wordBreak: 'break-word',
             }}
           >
             {product.name}
           </Typography>
 
           {/* KATEGORİLER */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1,
-              mb: 1,
-            }}
-          >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
             {product.category && (
               <Chip
                 label={product.category}
@@ -271,6 +224,7 @@ const ProductDetail = ({ product, loading }) => {
               lineHeight: 1.6,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              overflow: 'visible',
             }}
           >
             {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
@@ -297,7 +251,6 @@ const ProductDetail = ({ product, loading }) => {
                       display: 'flex',
                       alignItems: 'flex-start',
                       gap: 1,
-                      wordBreak: 'break-word',
                     }}
                   >
                     <Box
@@ -348,8 +301,8 @@ const ProductDetail = ({ product, loading }) => {
               {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
             </Button>
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* ZOOM DİYALOG */}
       <Dialog
