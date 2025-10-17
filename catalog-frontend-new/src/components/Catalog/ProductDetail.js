@@ -1,3 +1,4 @@
+// src/components/Catalog/ProductDetail.js
 import React, { useState } from 'react';
 import {
   Box,
@@ -26,18 +27,10 @@ const ProductDetail = ({ product, loading }) => {
   const renderPrice = (price) => {
     if (price === 'Fiyat Alınız') {
       return (
-        <Chip
-          label="Fiyat Alınız"
-          color="warning"
-          sx={{
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            width: 160,
-            height: 48,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
+        <Chip 
+          label="Fiyat Alınız" 
+          color="warning" 
+          sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
         />
       );
     }
@@ -50,25 +43,12 @@ const ProductDetail = ({ product, loading }) => {
       );
     }
     return (
-      <Chip
-        label="Fiyat Bilgisi Yok"
-        color="error"
-        variant="outlined"
-        sx={{
-          fontWeight: 600,
-          fontSize: '1rem',
-          width: 160,
-          height: 48,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}
-      />
+      <Chip label="Fiyat Bilgisi Yok" color="error" variant="outlined" sx={{ fontWeight: 600 }} />
     );
   };
 
   const handleContact = () => {
-    const phone = '905326111641';
+    const phone = "905326111641";
     const message = `Merhaba, ${product.name} (${product.price} ₺) ürünü hakkında bilgi almak istiyorum.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -81,26 +61,41 @@ const ProductDetail = ({ product, loading }) => {
     );
   }
 
-  const specs = product.specs || [];
-  const midIndex = Math.ceil(specs.length / 2);
-  const leftSpecs = specs.slice(0, midIndex);
-  const rightSpecs = specs.slice(midIndex);
-
   return (
-    <Box sx={{ maxWidth: '1100px', margin: '0 auto', px: 2, py: 3 }}>
-      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
-        {/* SOL TARAF: GÖRSEL */}
-        <Grid item xs={12} md={5}>
-          <Box
-            sx={{
+    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
+      <Grid 
+        container 
+        spacing={4}
+        alignItems="flex-start"
+        justifyContent="center"
+      >
+        {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
+        <Grid 
+          item 
+          xs={12} 
+          md={6} 
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
+          {/* ANA GÖRSEL */}
+          <Box 
+            sx={{ 
               width: '100%',
-              height: 400,
+              maxWidth: 500,
+              height: 400, // sabit yükseklik
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
               overflow: 'hidden',
               position: 'relative',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexShrink: 0,
             }}
           >
             <Box
@@ -110,7 +105,7 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
+                objectFit: 'contain', // orijinal oran korunur
                 objectPosition: 'center'
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
@@ -129,7 +124,7 @@ const ProductDetail = ({ product, loading }) => {
             </IconButton>
           </Box>
 
-          {/* ALT GÖRSELLER */}
+          {/* KÜÇÜK GÖRSELLER */}
           {product.images && product.images.length > 1 && (
             <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
               {product.images.map((img, i) => (
@@ -140,8 +135,8 @@ const ProductDetail = ({ product, loading }) => {
                     alt={`${product.name} ${i + 1}`}
                     onClick={() => setSelectedImage(i)}
                     sx={{
-                      width: 65,
-                      height: 65,
+                      width: 70,
+                      height: 70,
                       objectFit: 'cover',
                       border: '2px solid',
                       borderColor: selectedImage === i ? 'primary.main' : 'transparent',
@@ -157,70 +152,101 @@ const ProductDetail = ({ product, loading }) => {
           )}
         </Grid>
 
-        {/* SAĞ TARAF: DETAYLAR */}
-        <Grid item xs={12} md={7}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* SAĞ TARAF: ÜRÜN BİLGİLERİ */}
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start',
+              height: '100%',
+              gap: 2
+            }}
+          >
+            {/* ÜRÜN ADI */}
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               {product.name}
             </Typography>
 
+            {/* KATEGORİLER */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {product.category && <Chip label={product.category} color="primary" variant="outlined" />}
+              {product.category && (
+                <Chip label={product.category} color="primary" variant="outlined" />
+              )}
               {product.subcategory && (
-                <Chip
-                  label={product.subcategory}
+                <Chip 
+                  label={product.subcategory} 
                   variant="outlined"
                   sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
                 />
               )}
             </Box>
 
+            {/* FİYAT */}
             {renderPrice(product.price)}
 
+            {/* BARKOD */}
             {product.barcode && (
               <Typography variant="body2" color="text.secondary">
                 Barkod: {product.barcode}
               </Typography>
             )}
 
-            <Divider sx={{ my: 1.5 }} />
+            <Divider sx={{ my: 2 }} />
 
+            {/* AÇIKLAMA */}
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Ürün Açıklaması
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body1" color="text.secondary">
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {specs.length > 0 && (
+            {/* TEKNİK ÖZELLİKLER - 2 SÜTUNLU */}
+            {product.specs?.length > 0 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
                   Teknik Özellikler
                 </Typography>
-                <Grid container spacing={1}>
-                  <Grid item xs={12} md={6}>
-                    <List dense>
-                      {leftSpecs.map((spec, i) => (
-                        <ListItem key={`left-${i}`} sx={{ px: 0, py: 0 }}>
-                          <ListItemText primary={spec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <List dense>
-                      {rightSpecs.map((spec, i) => (
-                        <ListItem key={`right-${i}`} sx={{ px: 0, py: 0 }}>
-                          <ListItemText primary={spec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-                </Grid>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)', // 2 sütun
+                    gap: 1.5, // sütunlar arası boşluk
+                    mt: 1,
+                  }}
+                >
+                  {product.specs.map((spec, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          mt: '7px',
+                          borderRadius: '50%',
+                          backgroundColor: theme.palette.text.primary,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        {spec}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </>
             )}
 
-            <Box sx={{ mt: 2 }}>
+            {/* İLETİŞİM BUTONU */}
+            <Box sx={{ mt: 'auto', pt: 2 }}>
               <Button
                 variant="contained"
                 size="large"
@@ -229,7 +255,7 @@ const ProductDetail = ({ product, loading }) => {
                 sx={{
                   fontWeight: 600,
                   fontSize: '1.1rem',
-                  py: 1.2,
+                  py: 1.5,
                   px: 4,
                   backgroundColor: '#2c3e50',
                   '&:hover': { backgroundColor: '#1f2d3a' }
@@ -242,8 +268,13 @@ const ProductDetail = ({ product, loading }) => {
         </Grid>
       </Grid>
 
-      {/* ZOOM GÖRSEL */}
-      <Dialog open={zoomDialogOpen} onClose={() => setZoomDialogOpen(false)} maxWidth="lg" fullWidth>
+      {/* ZOOM DİYALOG */}
+      <Dialog
+        open={zoomDialogOpen}
+        onClose={() => setZoomDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
         <DialogContent sx={{ p: 0 }}>
           <Box
             component="img"
