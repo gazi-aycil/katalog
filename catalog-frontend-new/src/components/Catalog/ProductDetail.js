@@ -102,46 +102,91 @@ const ProductDetail = ({ product, loading }) => {
           gap: 4,
         }}
       >
-        {/* SOL: SABİT GÖRSEL */}
+        {/* SOL: SABİT GÖRSEL + KÜÇÜKLER */}
         <Box
           sx={{
-            width: 600,
-            height: 600,
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: '#f8f9fa',
+            width: 400,
             flexShrink: 0,
             display: 'flex',
-            justifyContent: 'center',
+            flexDirection: 'column',
             alignItems: 'center',
-            overflow: 'hidden',
-            position: 'relative',
           }}
         >
+          {/* ANA GÖRSEL */}
           <Box
-            component="img"
-            src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
-            alt={product.name}
             sx={{
               width: '100%',
-              height: '100%',
-              objectFit: 'contain',
+              height: 400,
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflow: 'hidden',
+              position: 'relative',
             }}
-            onError={(e) => (e.target.src = '/placeholder-product.jpg')}
-          />
-          <IconButton
-            sx={{
-              position: 'absolute',
-              bottom: 16,
-              right: 16,
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              '&:hover': { backgroundColor: 'white' },
-            }}
-            onClick={() => setZoomDialogOpen(true)}
           >
-            <ZoomInIcon />
-          </IconButton>
+            <Box
+              component="img"
+              src={product.images?.[selectedImage] || '/placeholder-product.jpg'}
+              alt={product.name}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+              }}
+              onError={(e) => (e.target.src = '/placeholder-product.jpg')}
+            />
+            <IconButton
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                right: 16,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                '&:hover': { backgroundColor: 'white' },
+              }}
+              onClick={() => setZoomDialogOpen(true)}
+            >
+              <ZoomInIcon />
+            </IconButton>
+          </Box>
+
+          {/* ALT KÜÇÜK GÖRSELLER */}
+          {product.images && product.images.length > 1 && (
+            <Grid
+              container
+              spacing={1}
+              justifyContent="center"
+              sx={{
+                mt: 1,
+                width: '100%',
+              }}
+            >
+              {product.images.map((img, i) => (
+                <Grid item key={i}>
+                  <Box
+                    component="img"
+                    src={img}
+                    alt={`${product.name} ${i + 1}`}
+                    onClick={() => setSelectedImage(i)}
+                    sx={{
+                      width: 70,
+                      height: 70,
+                      objectFit: 'cover',
+                      border: '2px solid',
+                      borderColor: selectedImage === i ? 'primary.main' : 'transparent',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s ease',
+                      backgroundColor: '#fff',
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Box>
 
         {/* SAĞ: ÜRÜN BİLGİLERİ */}
@@ -155,19 +200,10 @@ const ProductDetail = ({ product, loading }) => {
             whiteSpace: 'normal',
           }}
         >
-          {/* ÜRÜN ADI */}
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 600,
-              mb: 1,
-              lineHeight: 1.3,
-            }}
-          >
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, lineHeight: 1.3 }}>
             {product.name}
           </Typography>
 
-          {/* KATEGORİLER */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
             {product.category && (
               <Chip
@@ -194,25 +230,16 @@ const ProductDetail = ({ product, loading }) => {
             )}
           </Box>
 
-          {/* FİYAT */}
           {renderPrice(product.price)}
 
-          {/* BARKOD */}
           {product.barcode && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                wordBreak: 'break-word',
-              }}
-            >
+            <Typography variant="body2" color="text.secondary">
               Barkod: {product.barcode}
             </Typography>
           )}
 
           <Divider sx={{ my: 2 }} />
 
-          {/* AÇIKLAMA */}
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Ürün Açıklaması
           </Typography>
@@ -224,13 +251,11 @@ const ProductDetail = ({ product, loading }) => {
               lineHeight: 1.6,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              overflow: 'visible',
             }}
           >
             {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
           </Typography>
 
-          {/* TEKNİK ÖZELLİKLER */}
           {product.specs?.length > 0 && (
             <>
               <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
@@ -280,7 +305,6 @@ const ProductDetail = ({ product, loading }) => {
             </>
           )}
 
-          {/* İLETİŞİM BUTONU */}
           <Box sx={{ mt: 3 }}>
             <Button
               variant="contained"
