@@ -105,7 +105,7 @@ const ProductDetail = ({ product, loading }) => {
         {/* SOL: SABİT GÖRSEL + KÜÇÜKLER */}
         <Box
           sx={{
-            width: 400,
+            width: { xs: '100%', md: 400 },
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
@@ -116,7 +116,8 @@ const ProductDetail = ({ product, loading }) => {
           <Box
             sx={{
               width: '100%',
-              height: 400,
+              height: { xs: 'auto', md: 400 },
+              aspectRatio: { xs: '1 / 1', md: 'auto' },
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
@@ -162,10 +163,13 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 mt: 1,
                 width: '100%',
+                flexWrap: 'nowrap',
+                overflowX: { xs: 'auto', md: 'visible' },
+                pb: 1,
               }}
             >
               {product.images.map((img, i) => (
-                <Grid item key={i}>
+                <Grid item key={i} sx={{ flexShrink: 0 }}>
                   <Box
                     component="img"
                     src={img}
