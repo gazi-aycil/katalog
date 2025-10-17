@@ -116,7 +116,7 @@ const ProductDetail = ({ product, loading }) => {
           <Box
             sx={{
               width: '100%',
-              height: 400,
+              height: 600,
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
