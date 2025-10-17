@@ -105,8 +105,8 @@ const ProductDetail = ({ product, loading }) => {
         {/* SOL: SABİT GÖRSEL */}
         <Box
           sx={{
-            width: 400,
-            height: 400,
+            width: 600,
+            height: 600,
             borderRadius: 2,
             border: '1px solid',
             borderColor: 'divider',
