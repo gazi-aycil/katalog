@@ -24,8 +24,8 @@ const ProductDetail = ({ product, loading }) => {
   const renderPrice = (price) => {
     if (price === 'Fiyat Alınız') {
       return (
-        <Chip 
-          label="Fiyat Alınız" 
+        <Chip
+          label="Fiyat Alınız"
           color="warning"
           sx={{
             fontWeight: 600,
@@ -33,9 +33,8 @@ const ProductDetail = ({ product, loading }) => {
             px: 2,
             py: 1,
             whiteSpace: 'normal',
-            lineHeight: 1.2,
-            textAlign: 'center',
             wordBreak: 'break-word',
+            textAlign: 'center',
           }}
         />
       );
@@ -49,9 +48,8 @@ const ProductDetail = ({ product, loading }) => {
           gutterBottom
           sx={{
             fontWeight: 600,
-            wordBreak: 'break-word',
             whiteSpace: 'normal',
-            lineHeight: 1.2,
+            wordBreak: 'break-word',
           }}
         >
           {value.toFixed(2)} ₺
@@ -66,8 +64,8 @@ const ProductDetail = ({ product, loading }) => {
         sx={{
           fontWeight: 600,
           whiteSpace: 'normal',
-          textAlign: 'center',
           wordBreak: 'break-word',
+          textAlign: 'center',
         }}
       />
     );
@@ -88,9 +86,21 @@ const ProductDetail = ({ product, loading }) => {
   }
 
   return (
-    <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
-        {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
+    <Box
+      sx={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        px: 2,
+        py: 4,
+      }}
+    >
+      <Grid
+        container
+        spacing={4}
+        alignItems="flex-start"
+        justifyContent="center"
+      >
+        {/* SOL TARAF: SABİT GÖRSEL */}
         <Grid
           item
           xs={12}
@@ -99,24 +109,23 @@ const ProductDetail = ({ product, loading }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            flexShrink: 0,
+            justifyContent: 'flex-start',
           }}
         >
-          {/* ANA GÖRSEL */}
           <Box
             sx={{
-              width: '100%',
-              maxWidth: 500,
-              height: 400, // sabit yükseklik
+              width: 400,
+              height: 400,
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
-              overflow: 'hidden',
-              position: 'relative',
               backgroundColor: '#f8f9fa',
+              overflow: 'hidden',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
+              position: 'relative',
+              flexShrink: 0,
             }}
           >
             <Box
@@ -127,7 +136,6 @@ const ProductDetail = ({ product, loading }) => {
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
-                objectPosition: 'center',
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
             />
@@ -145,7 +153,7 @@ const ProductDetail = ({ product, loading }) => {
             </IconButton>
           </Box>
 
-          {/* KÜÇÜK GÖRSELLER */}
+          {/* Küçük Görseller */}
           {product.images && product.images.length > 1 && (
             <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
               {product.images.map((img, i) => (
@@ -173,181 +181,172 @@ const ProductDetail = ({ product, loading }) => {
           )}
         </Grid>
 
-        {/* SAĞ TARAF: ÜRÜN BİLGİLERİ */}
-        <Grid item xs={12} md={6}>
+        {/* SAĞ TARAF: SABİT DÜZENLİ ALAN */}
+        <Grid
+          item
+          xs={12}
+          md={6}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            wordBreak: 'break-word',
+            whiteSpace: 'normal',
+          }}
+        >
+          {/* ÜRÜN ADI */}
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              mb: 1,
+              lineHeight: 1.3,
+              wordBreak: 'break-word',
+            }}
+          >
+            {product.name}
+          </Typography>
+
+          {/* KATEGORİLER */}
           <Box
             sx={{
               display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              gap: 2,
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              whiteSpace: 'normal',
+              flexWrap: 'wrap',
+              gap: 1,
+              mb: 1,
             }}
           >
-            {/* ÜRÜN ADI */}
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 600,
-                wordBreak: 'break-word',
-                whiteSpace: 'normal',
-                lineHeight: 1.3,
-              }}
-            >
-              {product.name}
-            </Typography>
-
-            {/* KATEGORİLER */}
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1,
-                wordBreak: 'break-word',
-              }}
-            >
-              {product.category && (
-                <Chip
-                  label={product.category}
-                  color="primary"
-                  variant="outlined"
-                  sx={{
-                    whiteSpace: 'normal',
-                    textAlign: 'center',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.2,
-                  }}
-                />
-              )}
-              {product.subcategory && (
-                <Chip
-                  label={product.subcategory}
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'secondary.main',
-                    color: 'secondary.main',
-                    whiteSpace: 'normal',
-                    textAlign: 'center',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.2,
-                  }}
-                />
-              )}
-            </Box>
-
-            {/* FİYAT */}
-            {renderPrice(product.price)}
-
-            {/* BARKOD */}
-            {product.barcode && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
+            {product.category && (
+              <Chip
+                label={product.category}
+                color="primary"
+                variant="outlined"
                 sx={{
-                  wordBreak: 'break-word',
                   whiteSpace: 'normal',
+                  wordBreak: 'break-word',
                 }}
-              >
-                Barkod: {product.barcode}
-              </Typography>
+              />
             )}
+            {product.subcategory && (
+              <Chip
+                label={product.subcategory}
+                variant="outlined"
+                sx={{
+                  borderColor: 'secondary.main',
+                  color: 'secondary.main',
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                }}
+              />
+            )}
+          </Box>
 
-            <Divider sx={{ my: 2 }} />
+          {/* FİYAT */}
+          {renderPrice(product.price)}
 
-            {/* AÇIKLAMA */}
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Ürün Açıklaması
-            </Typography>
+          {/* BARKOD */}
+          {product.barcode && (
             <Typography
-              variant="body1"
+              variant="body2"
               color="text.secondary"
               sx={{
-                whiteSpace: 'pre-wrap',
-                textAlign: 'justify',
-                lineHeight: 1.6,
                 wordBreak: 'break-word',
-                overflowWrap: 'break-word',
               }}
             >
-              {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
+              Barkod: {product.barcode}
             </Typography>
+          )}
 
-            {/* TEKNİK ÖZELLİKLER */}
-            {product.specs?.length > 0 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
-                  Teknik Özellikler
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 1.5,
-                    mt: 1,
-                  }}
-                >
-                  {product.specs.map((spec, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1,
-                        wordBreak: 'break-word',
-                        whiteSpace: 'normal',
-                      }}
-                    >
-                      <Box
-                        component="span"
-                        sx={{
-                          width: 6,
-                          height: 6,
-                          mt: '7px',
-                          borderRadius: '50%',
-                          backgroundColor: theme.palette.text.primary,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          lineHeight: 1.5,
-                          wordBreak: 'break-word',
-                          whiteSpace: 'normal',
-                        }}
-                      >
-                        {spec}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </>
-            )}
+          <Divider sx={{ my: 2 }} />
 
-            {/* İLETİŞİM BUTONU */}
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth={isMobile}
-                onClick={handleContact}
+          {/* AÇIKLAMA */}
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Ürün Açıklaması
+          </Typography>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{
+              textAlign: 'justify',
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
+          </Typography>
+
+          {/* TEKNİK ÖZELLİKLER */}
+          {product.specs?.length > 0 && (
+            <>
+              <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
+                Teknik Özellikler
+              </Typography>
+              <Box
                 sx={{
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
-                  py: 1.5,
-                  px: 4,
-                  backgroundColor: '#2c3e50',
-                  '&:hover': { backgroundColor: '#1f2d3a' },
-                  whiteSpace: 'normal',
-                  wordBreak: 'break-word',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 2,
+                  mt: 1,
                 }}
               >
-                {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
-              </Button>
-            </Box>
+                {product.specs.map((spec, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        mt: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.text.primary,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        lineHeight: 1.5,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {spec}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          )}
+
+          {/* İLETİŞİM BUTONU */}
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth={isMobile}
+              onClick={handleContact}
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.1rem',
+                py: 1.5,
+                px: 4,
+                backgroundColor: '#2c3e50',
+                '&:hover': { backgroundColor: '#1f2d3a' },
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+              }}
+            >
+              {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
+            </Button>
           </Box>
         </Grid>
       </Grid>
