@@ -26,21 +26,50 @@ const ProductDetail = ({ product, loading }) => {
       return (
         <Chip 
           label="Fiyat Alınız" 
-          color="warning" 
-          sx={{ fontWeight: 600, fontSize: '1.1rem', px: 2, py: 1 }}
+          color="warning"
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            px: 2,
+            py: 1,
+            whiteSpace: 'normal',
+            lineHeight: 1.2,
+            textAlign: 'center',
+            wordBreak: 'break-word',
+          }}
         />
       );
     }
     const value = typeof price === 'string' ? parseFloat(price) : price;
     if (!isNaN(value)) {
       return (
-        <Typography variant="h4" color="primary" gutterBottom sx={{ fontWeight: 600 }}>
+        <Typography
+          variant="h4"
+          color="primary"
+          gutterBottom
+          sx={{
+            fontWeight: 600,
+            wordBreak: 'break-word',
+            whiteSpace: 'normal',
+            lineHeight: 1.2,
+          }}
+        >
           {value.toFixed(2)} ₺
         </Typography>
       );
     }
     return (
-      <Chip label="Fiyat Bilgisi Yok" color="error" variant="outlined" sx={{ fontWeight: 600 }} />
+      <Chip
+        label="Fiyat Bilgisi Yok"
+        color="error"
+        variant="outlined"
+        sx={{
+          fontWeight: 600,
+          whiteSpace: 'normal',
+          textAlign: 'center',
+          wordBreak: 'break-word',
+        }}
+      />
     );
   };
 
@@ -60,27 +89,22 @@ const ProductDetail = ({ product, loading }) => {
 
   return (
     <Box sx={{ maxWidth: '1200px', margin: '0 auto', px: 2 }}>
-      <Grid 
-        container 
-        spacing={4}
-        alignItems="flex-start"
-        justifyContent="center"
-      >
+      <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
         {/* SOL TARAF: ÜRÜN GÖRSELLERİ */}
-        <Grid 
-          item 
-          xs={12} 
-          md={6} 
+        <Grid
+          item
+          xs={12}
+          md={6}
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            flexShrink: 0
+            flexShrink: 0,
           }}
         >
           {/* ANA GÖRSEL */}
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               width: '100%',
               maxWidth: 500,
               height: 400, // sabit yükseklik
@@ -92,7 +116,7 @@ const ProductDetail = ({ product, loading }) => {
               backgroundColor: '#f8f9fa',
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
             <Box
@@ -102,8 +126,8 @@ const ProductDetail = ({ product, loading }) => {
               sx={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain', // oran korunur
-                objectPosition: 'center'
+                objectFit: 'contain',
+                objectPosition: 'center',
               }}
               onError={(e) => (e.target.src = '/placeholder-product.jpg')}
             />
@@ -113,7 +137,7 @@ const ProductDetail = ({ product, loading }) => {
                 bottom: 16,
                 right: 16,
                 backgroundColor: 'rgba(255,255,255,0.9)',
-                '&:hover': { backgroundColor: 'white' }
+                '&:hover': { backgroundColor: 'white' },
               }}
               onClick={() => setZoomDialogOpen(true)}
             >
@@ -140,7 +164,7 @@ const ProductDetail = ({ product, loading }) => {
                       borderRadius: 1,
                       cursor: 'pointer',
                       transition: 'border-color 0.2s ease',
-                      backgroundColor: '#fff'
+                      backgroundColor: '#fff',
                     }}
                   />
                 </Grid>
@@ -157,25 +181,58 @@ const ProductDetail = ({ product, loading }) => {
               flexDirection: 'column',
               justifyContent: 'flex-start',
               gap: 2,
-              wordWrap: 'break-word',        // uzun kelimeleri böl
-              overflowWrap: 'break-word',     // metin kaymasın
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'normal',
             }}
           >
             {/* ÜRÜN ADI */}
-            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 600,
+                wordBreak: 'break-word',
+                whiteSpace: 'normal',
+                lineHeight: 1.3,
+              }}
+            >
               {product.name}
             </Typography>
 
             {/* KATEGORİLER */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1,
+                wordBreak: 'break-word',
+              }}
+            >
               {product.category && (
-                <Chip label={product.category} color="primary" variant="outlined" />
+                <Chip
+                  label={product.category}
+                  color="primary"
+                  variant="outlined"
+                  sx={{
+                    whiteSpace: 'normal',
+                    textAlign: 'center',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.2,
+                  }}
+                />
               )}
               {product.subcategory && (
-                <Chip 
-                  label={product.subcategory} 
+                <Chip
+                  label={product.subcategory}
                   variant="outlined"
-                  sx={{ borderColor: 'secondary.main', color: 'secondary.main' }}
+                  sx={{
+                    borderColor: 'secondary.main',
+                    color: 'secondary.main',
+                    whiteSpace: 'normal',
+                    textAlign: 'center',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.2,
+                  }}
                 />
               )}
             </Box>
@@ -185,7 +242,14 @@ const ProductDetail = ({ product, loading }) => {
 
             {/* BARKOD */}
             {product.barcode && (
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  wordBreak: 'break-word',
+                  whiteSpace: 'normal',
+                }}
+              >
                 Barkod: {product.barcode}
               </Typography>
             )}
@@ -204,12 +268,13 @@ const ProductDetail = ({ product, loading }) => {
                 textAlign: 'justify',
                 lineHeight: 1.6,
                 wordBreak: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {product.description || 'Bu ürün için açıklama bulunmamaktadır.'}
             </Typography>
 
-            {/* TEKNİK ÖZELLİKLER - 2 SÜTUNLU */}
+            {/* TEKNİK ÖZELLİKLER */}
             {product.specs?.length > 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
@@ -218,7 +283,7 @@ const ProductDetail = ({ product, loading }) => {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)', // iki sütun
+                    gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: 1.5,
                     mt: 1,
                   }}
@@ -230,6 +295,8 @@ const ProductDetail = ({ product, loading }) => {
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: 1,
+                        wordBreak: 'break-word',
+                        whiteSpace: 'normal',
                       }}
                     >
                       <Box
@@ -243,7 +310,15 @@ const ProductDetail = ({ product, loading }) => {
                           flexShrink: 0,
                         }}
                       />
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          lineHeight: 1.5,
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                        }}
+                      >
                         {spec}
                       </Typography>
                     </Box>
@@ -265,7 +340,9 @@ const ProductDetail = ({ product, loading }) => {
                   py: 1.5,
                   px: 4,
                   backgroundColor: '#2c3e50',
-                  '&:hover': { backgroundColor: '#1f2d3a' }
+                  '&:hover': { backgroundColor: '#1f2d3a' },
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
                 }}
               >
                 {product.price === 'Fiyat Alınız' ? 'Fiyat Sorun' : 'İletişime Geçin'}
@@ -290,7 +367,7 @@ const ProductDetail = ({ product, loading }) => {
             sx={{
               width: '100%',
               height: 'auto',
-              objectFit: 'contain'
+              objectFit: 'contain',
             }}
           />
         </DialogContent>
