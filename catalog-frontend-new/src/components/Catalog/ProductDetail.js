@@ -115,8 +115,8 @@ const ProductDetail = ({ product, loading }) => {
           {/* ANA GÖRSEL */}
           <Box
             sx={{
-              width: 600,
-              height: 600,
+              width: '100%',
+              height: 400,
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
