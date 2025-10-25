@@ -52,6 +52,9 @@ export const getProductsByCategory = async (categoryId, includeSubcategories = t
     throw error;
   }
 };
+export const searchProducts = (query) => {
+  return axios.get(`${API_BASE_URL}/api/search`, { params: { q: query } });
+};
 
 export const getProductsBySubcategory = async (subcategoryId, includeSubcategories = true) => {
   try {
