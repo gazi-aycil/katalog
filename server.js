@@ -1,80 +1,25 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const multer = require('multer');
-const ImageKit = require('imagekit');
-const path = require('path');
-const fs = require('fs');
-const XLSX = require('xlsx');
-const { body, validationResult } = require('express-validator');
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import Item from './models/Item.js';
+import Category from './models/Category.js';
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5002;
+app.use(cors());
+app.use(express.json());
 
-// 🔹 ImageKit config
-const imagekit = new ImageKit({
-  publicKey: 'public_UjYJw52KefpFNDwLgSX84uFPlnw=',
-  privateKey: 'private_Ah0UG/lM0+LaTvdurbXhnUy2ePk=',
-  urlEndpoint: 'https://ik.imagekit.io/4t0zibpdh/'
-});
+// ✅ Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-// Middleware
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], credentials: true }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// MongoDB bağlantısı
-mongoose.connect('mongodb+srv://catalog-app:vlVAbyhQsAh2lUgS@catalog-app.v0tfl.mongodb.net/ravinzo?retryWrites=true&w=majority&appName=catalog-app&')
-  .then(() => console.log('🟢 MongoDB connected'))
-  .catch(err => console.error('🔴 MongoDB error:', err));
-
-// 🔹 Şemalar
-const subcategorySchema = new mongoose.Schema({
-  _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
-  name: String,
-  imageUrl: String,
-  subcategories: [mongoose.Schema.Types.Mixed]
-});
-
-const categorySchema = new mongoose.Schema({
-  name: String,
-  imageUrl: String,
-  subcategories: [subcategorySchema]
-}, { timestamps: true });
-
-const itemSchema = new mongoose.Schema({
-  barcode: String,
-  name: String,
-  description: String,
-  category: String,
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  subcategory: String,
-  subcategoryId: { type: mongoose.Schema.Types.ObjectId },
-  price: mongoose.Schema.Types.Mixed,
-  specs: [String],
-  images: [String],
-}, { timestamps: true });
-
-const featureSchema = new mongoose.Schema({
-  name: String,
-  description: String,
-  type: { type: String, enum: ['usage_area', 'product_measurements', 'product_properties'] },
-  hasValue: Boolean,
-}, { timestamps: true });
-
-const Category = mongoose.model('Category', categorySchema);
-const Item = mongoose.model('Item', itemSchema);
-const Feature = mongoose.model('Feature', featureSchema);
-
-//
-// 🔍 YENİ ARAMA ENDPOINTİ
-//
+// ✅ Arama endpoint’i
 app.get('/api/search', async (req, res) => {
   try {
-    const query = req.query.q?.trim();
-    if (!query) return res.status(400).json({ message: 'Arama terimi gerekli' });
+    const q = req.query.q;
+    if (!q) return res.status(400).json({ message: 'Arama terimi gerekli' });
 
-    const regex = new RegExp(query, 'i');
+    const regex = new RegExp(q, 'i');
     const results = await Item.find({
       $or: [
         { name: regex },
@@ -83,42 +28,54 @@ app.get('/api/search', async (req, res) => {
       ]
     }).limit(50);
 
-    res.json({
-      query,
-      count: results.length,
-      results
-    });
+    res.json({ results });
   } catch (err) {
     console.error('🔴 Arama hatası:', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-//
-// 🔹 Kategori & Ürün CRUD
-//
+// ✅ Kategori ve ürün uç noktaları
 app.get('/api/categories', async (req, res) => {
   try {
     const categories = await Category.find();
-    res.json(categories);
+    res.json({ categories });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-app.get('/api/items', async (req, res) => {
+app.get('/api/category/:id/products', async (req, res) => {
   try {
-    const items = await Item.find();
-    res.json(items);
+    const products = await Item.find({ category: req.params.id });
+    res.json({ products });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Sağlık kontrolü
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🔍 Search endpoint: http://localhost:${PORT}/api/search?q=örnek`);
+app.get('/api/subcategory/:id/products', async (req, res) => {
+  try {
+    const products = await Item.find({ subcategory: req.params.id });
+    res.json({ products });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
+
+app.get('/api/item/:id', async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ✅ Mongo bağlantısı
+const PORT = process.env.PORT || 5000;
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    app.listen(PORT, () => console.log(`✅ Server çalışıyor: ${PORT}`));
+  })
+  .catch(err => console.error(err));

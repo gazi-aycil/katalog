@@ -1,27 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  IconButton,
-  Breadcrumbs,
-  Link,
-  CircularProgress,
-  useMediaQuery,
-  useTheme,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  TextField,
-  InputAdornment
+  Container, AppBar, Toolbar, Typography, Box,
+  IconButton, CircularProgress, useMediaQuery,
+  useTheme, TextField, InputAdornment
 } from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  Search as SearchIcon
-} from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Search as SearchIcon } from '@mui/icons-material';
 import CategoryGrid from './CategoryGrid';
 import ProductGrid from './ProductGrid';
 import ProductDetail from './ProductDetail';
@@ -42,55 +25,53 @@ const CatalogFrontend = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [breadcrumbStack, setBreadcrumbStack] = useState([]);
   const [view, setView] = useState('home');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 🔍 Arama ile ilgili state
+  // 🔍 Arama state’leri
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
-  // Kategorileri yükle
+  // 🟢 Kategorileri yükle
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await getCategories();
-        let categoriesData = [];
-
-        if (response.data) {
-          if (Array.isArray(response.data)) categoriesData = response.data;
-          else if (response.data.categories) categoriesData = response.data.categories;
-          else if (response.data.data) categoriesData = response.data.data;
-        }
-
-        setCategories(categoriesData);
-        setLoading(false);
-      } catch (err) {
-        setError('Kategoriler yüklenirken hata oluştu.');
+        const res = await getCategories();
+        const data = res.data.categories || res.data || [];
+        setCategories(data);
+      } catch {
+        setError('Kategoriler yüklenemedi');
+      } finally {
         setLoading(false);
       }
     };
-
     fetchCategories();
   }, []);
 
-  // 🔍 Arama fonksiyonu
+  // 🔎 Arama
   const handleSearch = async (e) => {
     const value = e.target.value;
     setSearchQuery(value);
 
-    if (value.trim().length < 2) {
-      if (view === 'search') setView('home');
+    // Boşsa ana sayfaya dön
+    if (value.trim() === '') {
+      setSearchResults([]);
+      setIsSearchMode(false);
+      setView('home');
       return;
     }
 
+    // 2 karakterden azsa bekle
+    if (value.trim().length < 2) return;
+
     try {
       setLoading(true);
-      const response = await searchProducts(value);
-      setSearchResults(response.data.results || []);
-      setView('search');
+      const res = await searchProducts(value);
+      setSearchResults(res.data.results || []);
+      setIsSearchMode(true);
     } catch (err) {
       console.error('Arama hatası:', err);
     } finally {
@@ -98,163 +79,58 @@ const CatalogFrontend = () => {
     }
   };
 
-  // Kategori seçimi
   const handleCategorySelect = async (category) => {
     try {
       setLoading(true);
+      const res = await getProductsByCategory(category._id, true);
+      setProducts(res.data.products || []);
       setSelectedCategory(category);
-      setSelectedSubcategory(null);
-      setBreadcrumbStack(prev => [...prev, { type: 'category', data: category }]);
-
-      if (category.subcategories && category.subcategories.length > 0) {
-        setView('subcategories');
-        setLoading(false);
-      } else {
-        const response = await getProductsByCategory(category._id, true);
-        setProducts(response.data.products || []);
-        setView('category');
-        setLoading(false);
-      }
+      setView('category');
     } catch {
-      setError('Ürünler yüklenirken hata oluştu.');
+      setError('Ürünler yüklenemedi');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Alt kategori seçimi
   const handleSubcategorySelect = async (subcategory) => {
     try {
       setLoading(true);
+      const res = await getProductsBySubcategory(subcategory._id, true);
+      setProducts(res.data.products || []);
       setSelectedSubcategory(subcategory);
-      setBreadcrumbStack(prev => [...prev, { type: 'subcategory', data: subcategory }]);
-
-      if (subcategory.subcategories && subcategory.subcategories.length > 0) {
-        setView('subcategories');
-        setLoading(false);
-      } else {
-        const response = await getProductsBySubcategory(subcategory._id, true);
-        setProducts(response.data.products || []);
-        setView('category');
-        setLoading(false);
-      }
+      setView('category');
     } catch {
-      setError('Alt kategori ürünleri yüklenirken hata oluştu.');
+      setError('Alt kategori ürünleri yüklenemedi');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Ürün seçimi
-  const handleProductSelect = async (productId) => {
+  const handleProductSelect = async (id) => {
     try {
       setLoading(true);
-      const response = await getItemById(productId);
-      setSelectedProduct(response.data);
+      const res = await getItemById(id);
+      setSelectedProduct(res.data);
       setView('product');
-      setLoading(false);
     } catch {
-      setError('Ürün detayları yüklenirken hata oluştu.');
+      setError('Ürün detayları yüklenemedi');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Geri dönüş mantığı
   const handleBack = () => {
     if (view === 'product') {
       setView('category');
       setSelectedProduct(null);
-      return;
-    }
-    if (view === 'search') {
-      setSearchQuery('');
-      setSearchResults([]);
-      setView('home');
-      return;
-    }
-
-    const newStack = [...breadcrumbStack];
-    newStack.pop();
-
-    if (newStack.length > 0) {
-      const prev = newStack[newStack.length - 1];
-      if (prev.type === 'subcategory') {
-        setSelectedSubcategory(prev.data);
-        setView('subcategories');
-      } else if (prev.type === 'category') {
-        setSelectedCategory(prev.data);
-        if (prev.data.subcategories?.length > 0) {
-          setView('subcategories');
-        } else {
-          setView('category');
-          getProductsByCategory(prev.data._id, true).then(r =>
-            setProducts(r.data.products || [])
-          );
-        }
-      }
-      setBreadcrumbStack(newStack);
     } else {
-      handleHome();
-    }
-  };
-
-  const handleHome = () => {
-    setView('home');
-    setSelectedCategory(null);
-    setSelectedSubcategory(null);
-    setSelectedProduct(null);
-    setBreadcrumbStack([]);
-    setProducts([]);
-    setSearchQuery('');
-    setSearchResults([]);
-  };
-
-  const renderBreadcrumbs = () => {
-    if (view === 'home' || view === 'search') return null;
-    const items = [{ label: 'Ana Sayfa', onClick: handleHome }];
-    breadcrumbStack.forEach((item, i) => items.push({
-      label: item.data.name,
-      onClick: () => handleBreadcrumbClick(i)
-    }));
-
-    return (
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-        {items.map((item, i) =>
-          i === items.length - 1 ? (
-            <Typography key={i} color="text.primary">{item.label}</Typography>
-          ) : (
-            <Link
-              key={i}
-              color="inherit"
-              onClick={item.onClick}
-              sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-            >
-              {item.label}
-            </Link>
-          )
-        )}
-      </Breadcrumbs>
-    );
-  };
-
-  const handleBreadcrumbClick = (index) => {
-    const newStack = breadcrumbStack.slice(0, index + 1);
-    setBreadcrumbStack(newStack);
-    if (newStack.length === 0) return handleHome();
-
-    const target = newStack[newStack.length - 1];
-    if (target.type === 'category') {
-      setSelectedCategory(target.data);
-      if (target.data.subcategories?.length > 0) setView('subcategories');
-      else {
-        setView('category');
-        getProductsByCategory(target.data._id, true).then(r => setProducts(r.data.products || []));
-      }
-    } else if (target.type === 'subcategory') {
-      setSelectedSubcategory(target.data);
-      if (target.data.subcategories?.length > 0) setView('subcategories');
-      else {
-        setView('category');
-        getProductsBySubcategory(target.data._id, true).then(r => setProducts(r.data.products || []));
-      }
+      setView('home');
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+      setProducts([]);
+      setIsSearchMode(false);
+      setSearchQuery('');
     }
   };
 
@@ -267,36 +143,30 @@ const CatalogFrontend = () => {
   }
 
   if (error) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
+    return <Typography color="error">{error}</Typography>;
   }
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
       <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#383E42' }}>
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar>
           {view !== 'home' && (
-            <IconButton edge="start" color="inherit" onClick={handleBack}>
+            <IconButton color="inherit" onClick={handleBack}>
               <ArrowBackIcon />
             </IconButton>
           )}
 
           <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center' }}>
-            {view === 'home'
-              ? 'Ravinzo Katalog'
-              : view === 'search'
+            {isSearchMode
               ? 'Arama Sonuçları'
+              : view === 'home'
+              ? 'Ravinzo Katalog'
               : selectedProduct
               ? selectedProduct.name
-              : selectedSubcategory
-              ? selectedSubcategory.name
-              : selectedCategory?.name}
+              : selectedCategory?.name || 'Katalog'}
           </Typography>
 
-          {/* 🔍 Arama Alanı */}
+          {/* 🔍 Arama Kutusu */}
           <TextField
             variant="outlined"
             size="small"
@@ -320,47 +190,19 @@ const CatalogFrontend = () => {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {renderBreadcrumbs()}
-
-        {view === 'home' && (
-          <CategoryGrid categories={categories} onCategorySelect={handleCategorySelect} />
-        )}
-
-        {view === 'subcategories' && selectedCategory && (
-          <Box>
-            <Typography variant="h4" align="center" gutterBottom>
-              {selectedSubcategory ? selectedSubcategory.name : selectedCategory.name}
-            </Typography>
-            <Grid container spacing={3} justifyContent="center">
-              {(selectedSubcategory?.subcategories || selectedCategory.subcategories || []).map((sub, i) => (
-                <Grid item key={i}>
-                  <Card
-                    sx={{
-                      width: 240,
-                      height: 300,
-                      cursor: 'pointer',
-                      transition: 'all .3s ease',
-                      '&:hover': { transform: 'translateY(-6px)', boxShadow: 4 }
-                    }}
-                    onClick={() => handleSubcategorySelect(sub)}
-                  >
-                    <CardMedia
-                      component="img"
-                      image={sub.imageUrl || '/placeholder-category.jpg'}
-                      sx={{ height: 180 }}
-                      alt={sub.name}
-                    />
-                    <CardContent sx={{ textAlign: 'center' }}>
-                      <Typography variant="h6" noWrap>{sub.name}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        )}
-
-        {view === 'category' && (
+        {/* 🔎 Arama aktifse */}
+        {isSearchMode ? (
+          <ProductGrid
+            products={searchResults}
+            onProductSelect={handleProductSelect}
+            loading={loading}
+          />
+        ) : view === 'home' ? (
+          <CategoryGrid
+            categories={categories}
+            onCategorySelect={handleCategorySelect}
+          />
+        ) : view === 'category' ? (
           <ProductGrid
             products={products}
             category={selectedCategory}
@@ -368,23 +210,9 @@ const CatalogFrontend = () => {
             onProductSelect={handleProductSelect}
             loading={loading}
           />
-        )}
-
-        {view === 'product' && selectedProduct && (
-          <Box sx={{ backgroundColor: '#ffffff', borderRadius: 2, p: 3 }}>
-            <ProductDetail product={selectedProduct} loading={loading} />
-          </Box>
-        )}
-
-        {view === 'search' && (
-          <ProductGrid
-            products={searchResults}
-            category={null}
-            subcategory={null}
-            onProductSelect={handleProductSelect}
-            loading={loading}
-          />
-        )}
+        ) : view === 'product' && selectedProduct ? (
+          <ProductDetail product={selectedProduct} loading={loading} />
+        ) : null}
       </Container>
     </Box>
   );
