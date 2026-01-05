@@ -62,6 +62,7 @@ const CatalogFrontend = () => {
     
     fetchCategories();
   }, []);
+
   // Kategori seçildiğinde
   const handleCategorySelect = async (category) => {
     try {
@@ -361,7 +362,7 @@ const CatalogFrontend = () => {
           )}
           <Typography variant="h6" component="div" align="center" sx={{ flexGrow: 1 }}>
             {view === 'home'
-              ? 'Rumeli Dizayn Katalog'
+              ? 'Ravinzo Katalog'
               : view === 'subcategories'
               ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name)
               : view === 'category'
