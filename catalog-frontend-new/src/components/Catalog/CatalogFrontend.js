@@ -24,10 +24,13 @@ import ProductGrid from './ProductGrid';
 import ProductDetail from './ProductDetail';
 import { getCategories, getProductsByCategory, getProductsBySubcategory, getItemById } from '../../services/catalogApi';
 
+// PREMIUM-STYLED CATALOG FRONTEND
+// Not: "Playfair Display" veya seçtiğiniz serif fontu kullanmak için index.html'e Google Fonts link'i eklemelisiniz.
+
 const CatalogFrontend = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -59,7 +62,7 @@ const CatalogFrontend = () => {
         setLoading(false);
       }
     };
-    
+
     fetchCategories();
   }, []);
 
@@ -76,7 +79,7 @@ const CatalogFrontend = () => {
         setLoading(false);
       } else {
         const response = await getProductsByCategory(category._id, true);
-        setProducts(response.data.products || []);
+        setProducts(response.data?.products || []);
         setView('category');
         setLoading(false);
       }
@@ -98,7 +101,7 @@ const CatalogFrontend = () => {
         setLoading(false);
       } else {
         const response = await getProductsBySubcategory(subcategory._id, true);
-        setProducts(response.data.products || []);
+        setProducts(response.data?.products || []);
         setView('category');
         setLoading(false);
       }
@@ -142,7 +145,7 @@ const CatalogFrontend = () => {
           } else {
             setView('category');
             getProductsByCategory(prevItem.data._id, true).then(response => {
-              setProducts(response.data.products || []);
+              setProducts(response.data?.products || []);
             });
           }
         }
@@ -172,27 +175,27 @@ const CatalogFrontend = () => {
       if (target.data.subcategories?.length > 0) setView('subcategories');
       else {
         setView('category');
-        getProductsByCategory(target.data._id, true).then(response => setProducts(response.data.products || []));
+        getProductsByCategory(target.data._id, true).then(response => setProducts(response.data?.products || []));
       }
     } else if (target.type === 'subcategory') {
       setSelectedSubcategory(target.data);
       if (target.data.subcategories?.length > 0) setView('subcategories');
       else {
         setView('category');
-        getProductsBySubcategory(target.data._id, true).then(response => setProducts(response.data.products || []));
+        getProductsBySubcategory(target.data._id, true).then(response => setProducts(response.data?.products || []));
       }
     }
   };
 
-  // ✅ ALT KATEGORİLER — STANDART BOYUTLU KARTLAR
+  // ✅ ALT KATEGORİLER — STANDART BOYUTLU KARTLAR (premium still)
   const renderSubcategories = () => {
     const currentCategory = selectedSubcategory || selectedCategory;
     if (!currentCategory?.subcategories) return null;
-  
+
     return (
       <Box>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 300 }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 300, fontFamily: '"Playfair Display", serif' }}>
             {currentCategory.name}
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -222,7 +225,7 @@ const CatalogFrontend = () => {
                   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-6px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                    boxShadow: '0 18px 40px rgba(15,15,15,0.18)',
                     borderColor: 'primary.main'
                   }
                 }}
@@ -235,7 +238,7 @@ const CatalogFrontend = () => {
                     width: '100%',
                     overflow: 'hidden',
                     position: 'relative',
-                    backgroundColor: '#f5f5f5'
+                    backgroundColor: '#fafafa'
                   }}
                 >
                   <CardMedia
@@ -278,7 +281,8 @@ const CatalogFrontend = () => {
                       textOverflow: 'ellipsis',
                       wordBreak: 'break-word',
                       fontSize: '1rem',
-                      mb: 1
+                      mb: 1,
+                      fontFamily: '"Playfair Display", serif'
                     }}
                   >
                     {subcategory.name}
@@ -319,13 +323,13 @@ const CatalogFrontend = () => {
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
         {items.map((item, i) =>
           i === items.length - 1 ? (
-            <Typography key={i} color="text.primary">{item.label}</Typography>
+            <Typography key={i} color="text.primary" sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 600 }}>{item.label}</Typography>
           ) : (
             <Link
               key={i}
               color="inherit"
               onClick={item.onClick}
-              sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+              sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, fontFamily: '"Playfair Display", serif', letterSpacing: '0.03em' }}
             >
               {item.label}
             </Link>
@@ -352,23 +356,65 @@ const CatalogFrontend = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
-      <AppBar position="sticky" elevation={2} sx={{ backgroundColor: '#383E42' }}>
-        <Toolbar>
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#fafafa' }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          background: 'linear-gradient(180deg, #2c2f33 0%, #1f2225 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)'
+        }}
+      >
+        <Toolbar sx={{ minHeight: isMobile ? 64 : 86 }}>
           {view !== 'home' && (
-            <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={handleBack}
+              sx={{
+                mr: 2,
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '50%',
+                transition: 'all 0.25s ease',
+                width: 44,
+                height: 44,
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  transform: 'translateX(-3px)'
+                }
+              }}
+            >
               <ArrowBackIcon />
             </IconButton>
           )}
-          <Typography variant="h6" component="div" align="center" sx={{ flexGrow: 1 }}>
-            {view === 'home'
-              ? 'Rumeli Dizayn'
-              : view === 'subcategories'
-              ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name)
-              : view === 'category'
-              ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name)
-              : selectedProduct?.name}
-          </Typography>
+
+          {/* LOGO-LIKE TITLE -- iki satırlı, logo etkisi */}
+          <Box sx={{ textAlign: 'center', flexGrow: 1 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Playfair Display", serif',
+                fontSize: isMobile ? '1.6rem' : '2.4rem',
+                letterSpacing: '0.12em',
+                fontWeight: 700,
+                lineHeight: 1,
+                color: '#fff',
+                textTransform: 'uppercase'
+              }}
+            >
+              RUMELİ
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: isMobile ? '0.65rem' : '0.85rem',
+                letterSpacing: '0.35em',
+                opacity: 0.82,
+                mt: '-6px',
+                color: 'rgba(255,255,255,0.85)'
+              }}
+            >
+              DİZAYN
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
 
