@@ -362,7 +362,7 @@ const CatalogFrontend = () => {
           )}
           <Typography variant="h6" component="div" align="center" sx={{ flexGrow: 1 }}>
             {view === 'home'
-              ? 'Ravinzo Katalog'
+              ? 'Rumeli Dizayn'
               : view === 'subcategories'
               ? (selectedSubcategory ? selectedSubcategory.name : selectedCategory?.name)
               : view === 'category'
